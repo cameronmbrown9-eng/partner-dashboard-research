@@ -491,15 +491,15 @@ const ProjectPartnerDashboard = () => {
             <div>
               <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
                 <Award size={40} />
-                Western University - PWLLE Leading the Way Drug-Checking Initiative
+                Western University in Collaboration with Scatr Inc
               </h1>
               <p className="text-lg mb-1 flex items-center gap-2">
                 <Users size={20} />
-                In partnership with Scatr Inc
+                A Two-Phase Novel Drug Checking Initiative
               </p>
               <p className="text-sm flex items-center gap-2">
                 <FileCheck size={18} />
-                Interactive Project Partner Dashboard
+                Funded by Health Canada's Substance Use and Addictions Program (SUAP) | Interactive Project Partner Dashboard
               </p>
             </div>
           </div>
@@ -517,9 +517,10 @@ const ProjectPartnerDashboard = () => {
           <div className="p-6 space-y-6">
             <div>
               <p className="text-gray-700 leading-relaxed mb-4">
-                The Leading the Way initiative represents Western University's commitment to expanding 
-                drug-checking services across Canada through partnership with Scatr Inc. This dashboard 
-                tracks the progress of our partner sites, device allocations, and regulatory exemption statuses.
+                The <span className="font-semibold text-purple-900">Western University and Scatr Inc Drug-Checking Initiative</span> is a Health Canada funded program 
+                under the Substance Use and Addictions Program (SUAP). This two-phase initiative deploys machine learning-enabled Raman spectrometers 
+                to supervised consumption sites and harm reduction centers across Canada to provide rapid, on-site drug checking services. 
+                This dashboard tracks the progress of our partner sites, device allocations, training completion, and regulatory exemption statuses.
               </p>
             </div>
 
@@ -534,20 +535,20 @@ const ProjectPartnerDashboard = () => {
                 {/* Phase Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white p-4 rounded-lg border-2 border-purple-300">
-                    <h4 className="font-bold text-purple-900 mb-2">Phase 1 (April 2022 - March 2024)</h4>
+                    <h4 className="font-bold text-purple-900 mb-2">Phase 1 (April 1, 2022 - March 31, 2024)</h4>
                     <p className="text-sm text-gray-700">
-                      "Creating A Drug Checking Network Using Machine Learning Enabled Spectrometers"
+                      "Creating a Drug Checking Network Using Machine Learning Enabled Spectrometers"
                       <br/>
-                      <span className="font-semibold mt-1 block">13 sites identified and deployed</span>
+                      <span className="font-semibold mt-1 block">Deployed 10 devices at supervised consumption sites with Section 56 Exemptions</span>
                     </p>
                   </div>
                   
                   <div className="bg-white p-4 rounded-lg border-2 border-green-300">
-                    <h4 className="font-bold text-green-900 mb-2">Phase 2 (June 2024 - March 2028)</h4>
+                    <h4 className="font-bold text-green-900 mb-2">Phase 2 (June 27, 2024 - March 31, 2028)</h4>
                     <p className="text-sm text-gray-700">
                       "Leading the Way: PWLLE at the Forefront of Drug-Checking Initiatives"
                       <br/>
-                      <span className="font-semibold mt-1 block">Continuing expansion with PWLLE integration</span>
+                      <span className="font-semibold mt-1 block">Expanding network and integrating People With Lived/Living Experience (PWLLE)</span>
                     </p>
                   </div>
                 </div>
@@ -556,7 +557,7 @@ const ProjectPartnerDashboard = () => {
                 <div className="relative">
                   <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
                     <span>Phase 1 Start<br/>April 1, 2022</span>
-                    <span className="text-center">Phase 2<br/>June 2024 - Present</span>
+                    <span className="text-center">Phase 2<br/>June 27, 2024 - Present</span>
                     <span className="text-right">Project End<br/>March 31, 2028</span>
                   </div>
                   
