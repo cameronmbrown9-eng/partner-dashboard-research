@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, List, X, Calendar, Award, Users, FileCheck, Maximize2, Minimize2 } from 'lucide-react';
+import { MapPin, List, X, Calendar, Award, Users, FileCheck, Maximize2, Minimize2, ChevronDown, ChevronUp } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -12,8 +12,15 @@ L.Icon.Default.mergeOptions({
 });
 
 const ProjectPartnerDashboard = () => {
-  const [view, setView] = useState('map');
-  const [compactTable, setCompactTable] = useState(false);
+  const [compactTable, setCompactTable] = useState(true);
+  const [expandedMetrics, setExpandedMetrics] = useState({});
+
+  const toggleMetric = (metricId) => {
+    setExpandedMetrics(prev => ({
+      ...prev,
+      [metricId]: !prev[metricId]
+    }));
+  };
 
   // CSV data parsed into objects
   const partnersData = [
@@ -815,34 +822,34 @@ const ProjectPartnerDashboard = () => {
           </button>
         </div>
         <div className="overflow-x-auto rounded-xl shadow-2xl border-4 border-purple-200">
-          <table className={`w-full border-collapse ${compactTable ? 'text-xs' : 'text-sm'}`}>
+          <table className={`w-full border-collapse ${compactTable ? '' : 'text-sm'}`} style={compactTable ? { fontSize: '0.65rem' } : {}}>
             <thead>
               <tr className="bg-gradient-to-r from-purple-700 to-purple-900 text-white">
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Status</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Name/Organization</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Address</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>City</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Prov</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Primary Contact</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Email</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Phone</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Additional Contact</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Email</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Phone</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Agreement</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Devices</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Serial #1</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Status #1</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Type #1</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Serial #2</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Status #2</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Type #2</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Year</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Scatr Training</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>PWLLE Training</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Expiration</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>Days Left</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-1' : 'p-2'} text-left`}>File Name</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Status</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Name/Organization</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Address</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>City</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Prov</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Primary Contact</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Email</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Phone</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Additional Contact</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Email</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Phone</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Agreement</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Devices</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Serial #1</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Status #1</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Type #1</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Serial #2</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Status #2</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Type #2</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Year</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Scatr Training</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>PWLLE Training</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Expiration</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Days Left</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>File Name</th>
               </tr>
             </thead>
             <tbody>
@@ -850,30 +857,30 @@ const ProjectPartnerDashboard = () => {
                 const daysUntil = calculateDaysUntil(site.exemptionExpiration);
                 return (
                   <tr key={site.id} className={idx % 2 === 0 ? 'bg-purple-50 hover:bg-purple-100' : 'bg-white hover:bg-purple-50'}>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.participationStatus}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'} font-semibold text-purple-900`}>{site.nameOrganization}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.address}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.city}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.prov}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.primaryContact}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.email1}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.phone1}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.additionalContact}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.email2}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.phone2}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.agreementStatus}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.devicesAssigned}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.deviceSerial1}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.exemptionStatus1}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.exemptionType1}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.deviceSerial2}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.exemptionStatus2}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.exemptionType2}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.projStartYear}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.scatrDelivery}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.pwlleTraining}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'}`}>{site.exemptionExpiration}</td>
-                    <td className={`border border-purple-200 ${compactTable ? 'p-1' : 'p-2'} font-semibold ${
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.participationStatus}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'} font-semibold text-purple-900`}>{site.nameOrganization}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.address}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.city}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.prov}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.primaryContact}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.email1}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.phone1}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.additionalContact}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.email2}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.phone2}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.agreementStatus}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.devicesAssigned}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.deviceSerial1}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.exemptionStatus1}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.exemptionType1}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.deviceSerial2}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.exemptionStatus2}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.exemptionType2}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.projStartYear}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.scatrDelivery}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.pwlleTraining}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'}`}>{site.exemptionExpiration}</td>
+                    <td className={`border border-purple-200 ${compactTable ? 'p-0.5' : 'p-2'} font-semibold ${
                       daysUntil === null ? '' : 
                       daysUntil < 30 ? 'text-red-600' : 
                       daysUntil < 90 ? 'text-orange-600' : 
@@ -898,7 +905,7 @@ const ProjectPartnerDashboard = () => {
         <div className="flex items-start gap-4">
           <Award className="mt-1 flex-shrink-0" size={40} />
           <div>
-            <h1 className="text-2xl font-bold mb-2">The University of Western Ontario - Leading the Way: PWLLE at the Forefront of Drug-Checking Initiatives - A Health Canada Substance Use and Addictions Program</h1>
+            <h1 className="text-2xl font-bold mb-2">The University of Western Ontario - Novel Two Phase Drug-Checking Initiative: A Health Canada Substance Use and Addictions Program</h1>
             <p className="text-lg mb-1 flex items-center gap-2">
               <Users size={20} />
               In partnership with Scatr Inc
@@ -912,35 +919,29 @@ const ProjectPartnerDashboard = () => {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Map/Table View */}
+        {/* Map View Section */}
         <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-          <div className="flex border-b-4 border-purple-200 bg-gradient-to-r from-purple-50 to-white">
-            <button
-              onClick={() => setView('map')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
-                view === 'map' 
-                  ? 'bg-gradient-to-r from-purple-700 to-purple-900 text-white border-b-4 border-purple-900 shadow-lg' 
-                  : 'text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              <MapPin size={20} />
+          <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
+            <h2 className="flex items-center gap-2 font-bold text-2xl">
+              <MapPin size={28} />
               Map View
-            </button>
-            <button
-              onClick={() => setView('table')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
-                view === 'table' 
-                  ? 'bg-gradient-to-r from-purple-700 to-purple-900 text-white border-b-4 border-purple-900 shadow-lg' 
-                  : 'text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              <List size={20} />
-              Table View
-            </button>
+            </h2>
           </div>
-
           <div className="p-6 bg-gradient-to-br from-white to-purple-50">
-            {view === 'map' ? <MapView /> : <TableView />}
+            <MapView />
+          </div>
+        </div>
+
+        {/* Table View Section */}
+        <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
+            <h2 className="flex items-center gap-2 font-bold text-2xl">
+              <List size={28} />
+              Table View
+            </h2>
+          </div>
+          <div className="p-6 bg-gradient-to-br from-white to-purple-50">
+            <TableView />
           </div>
         </div>
 
@@ -948,7 +949,7 @@ const ProjectPartnerDashboard = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-6 border-4 border-purple-100">
           <div className="flex items-center gap-3 mb-4">
             <Award className="text-purple-700" size={32} />
-            <h2 className="font-bold text-2xl text-purple-900">Comprehensive Partner Summary</h2>
+            <h2 className="font-bold text-2xl text-purple-900">Summary Metrics</h2>
           </div>
           
           <div className="mb-6 p-5 bg-gradient-to-r from-purple-100 to-purple-50 rounded-xl shadow-inner border-2 border-purple-200">
@@ -961,9 +962,22 @@ const ProjectPartnerDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-5 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-2xl transition-shadow">
-              <div className="text-3xl font-bold text-purple-900">{stats.totalPartners}</div>
-              <div className="text-sm text-purple-700 font-medium mt-1">Total Partner Sites</div>
+            <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-5 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-2xl transition-shadow cursor-pointer"
+                 onClick={() => toggleMetric('total')}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-purple-900">{stats.totalPartners}</div>
+                  <div className="text-sm text-purple-700 font-medium mt-1">Total Partner Sites</div>
+                </div>
+                {expandedMetrics.total ? <ChevronUp className="text-purple-700" /> : <ChevronDown className="text-purple-700" />}
+              </div>
+              {expandedMetrics.total && (
+                <div className="mt-3 pt-3 border-t border-purple-300 text-xs text-purple-800 space-y-1">
+                  {partnersData.map(site => (
+                    <div key={site.id}>• {site.nameOrganization}</div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="bg-gradient-to-br from-purple-200 to-purple-300 p-5 rounded-xl shadow-lg border-2 border-purple-400 hover:shadow-2xl transition-shadow">
               <div className="text-3xl font-bold text-purple-900">{stats.totalDevices}</div>
@@ -981,17 +995,56 @@ const ProjectPartnerDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-green-100 to-green-200 p-5 rounded-xl shadow-lg border-2 border-green-300 hover:shadow-2xl transition-shadow">
-              <div className="text-2xl font-bold text-green-900">{stats.exemptionStatus1Counts.Approved}</div>
-              <div className="text-sm text-green-700 font-medium mt-1">Approved Exemptions</div>
+            <div className="bg-gradient-to-br from-green-100 to-green-200 p-5 rounded-xl shadow-lg border-2 border-green-300 hover:shadow-2xl transition-shadow cursor-pointer"
+                 onClick={() => toggleMetric('approved')}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-green-900">{stats.exemptionStatus1Counts.Approved}</div>
+                  <div className="text-sm text-green-700 font-medium mt-1">Approved Exemptions</div>
+                </div>
+                {expandedMetrics.approved ? <ChevronUp className="text-green-700" /> : <ChevronDown className="text-green-700" />}
+              </div>
+              {expandedMetrics.approved && (
+                <div className="mt-3 pt-3 border-t border-green-300 text-xs text-green-800 space-y-1">
+                  {partnersData.filter(site => site.exemptionStatus1 === "Approved").map(site => (
+                    <div key={site.id}>• {site.nameOrganization}</div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 p-5 rounded-xl shadow-lg border-2 border-yellow-300 hover:shadow-2xl transition-shadow">
-              <div className="text-2xl font-bold text-yellow-900">{stats.exemptionStatus1Counts.Submitted}</div>
-              <div className="text-sm text-yellow-700 font-medium mt-1">Submitted Exemptions</div>
+            <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 p-5 rounded-xl shadow-lg border-2 border-yellow-300 hover:shadow-2xl transition-shadow cursor-pointer"
+                 onClick={() => toggleMetric('submitted')}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-yellow-900">{stats.exemptionStatus1Counts.Submitted}</div>
+                  <div className="text-sm text-yellow-700 font-medium mt-1">Submitted Exemptions</div>
+                </div>
+                {expandedMetrics.submitted ? <ChevronUp className="text-yellow-700" /> : <ChevronDown className="text-yellow-700" />}
+              </div>
+              {expandedMetrics.submitted && (
+                <div className="mt-3 pt-3 border-t border-yellow-300 text-xs text-yellow-800 space-y-1">
+                  {partnersData.filter(site => site.exemptionStatus1 === "Submitted").map(site => (
+                    <div key={site.id}>• {site.nameOrganization}</div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-5 rounded-xl shadow-lg border-2 border-orange-300 hover:shadow-2xl transition-shadow">
-              <div className="text-2xl font-bold text-orange-900">{stats.exemptionStatus1Counts.InProgress}</div>
-              <div className="text-sm text-orange-700 font-medium mt-1">In Progress</div>
+            <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-5 rounded-xl shadow-lg border-2 border-orange-300 hover:shadow-2xl transition-shadow cursor-pointer"
+                 onClick={() => toggleMetric('inprogress')}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-orange-900">{stats.exemptionStatus1Counts.InProgress}</div>
+                  <div className="text-sm text-orange-700 font-medium mt-1">In Progress</div>
+                </div>
+                {expandedMetrics.inprogress ? <ChevronUp className="text-orange-700" /> : <ChevronDown className="text-orange-700" />}
+              </div>
+              {expandedMetrics.inprogress && (
+                <div className="mt-3 pt-3 border-t border-orange-300 text-xs text-orange-800 space-y-1">
+                  {partnersData.filter(site => site.exemptionStatus1 === "In Progress").map(site => (
+                    <div key={site.id}>• {site.nameOrganization}</div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1007,13 +1060,39 @@ const ProjectPartnerDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-violet-100 to-violet-200 p-5 rounded-xl shadow-lg border-2 border-violet-300 hover:shadow-2xl transition-shadow">
-              <div className="text-2xl font-bold text-violet-900">{stats.year1Sites}</div>
-              <div className="text-sm text-violet-700 font-medium mt-1">Year 1 Sites</div>
+            <div className="bg-gradient-to-br from-violet-100 to-violet-200 p-5 rounded-xl shadow-lg border-2 border-violet-300 hover:shadow-2xl transition-shadow cursor-pointer"
+                 onClick={() => toggleMetric('year1')}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-violet-900">{stats.year1Sites} <span className="text-lg">(12 Devices)</span></div>
+                  <div className="text-sm text-violet-700 font-medium mt-1">Year 1 Sites</div>
+                </div>
+                {expandedMetrics.year1 ? <ChevronUp className="text-violet-700" /> : <ChevronDown className="text-violet-700" />}
+              </div>
+              {expandedMetrics.year1 && (
+                <div className="mt-3 pt-3 border-t border-violet-300 text-xs text-violet-800 space-y-1">
+                  {partnersData.filter(site => site.projStartYear === "YEAR 1").map(site => (
+                    <div key={site.id}>• {site.nameOrganization}</div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="bg-gradient-to-br from-pink-100 to-pink-200 p-5 rounded-xl shadow-lg border-2 border-pink-300 hover:shadow-2xl transition-shadow">
-              <div className="text-2xl font-bold text-pink-900">{stats.year2Sites}</div>
-              <div className="text-sm text-pink-700 font-medium mt-1">Year 2 Sites</div>
+            <div className="bg-gradient-to-br from-pink-100 to-pink-200 p-5 rounded-xl shadow-lg border-2 border-pink-300 hover:shadow-2xl transition-shadow cursor-pointer"
+                 onClick={() => toggleMetric('year2')}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-bold text-pink-900">{stats.year2Sites} <span className="text-lg">(12 Devices)</span></div>
+                  <div className="text-sm text-pink-700 font-medium mt-1">Year 2 Sites</div>
+                </div>
+                {expandedMetrics.year2 ? <ChevronUp className="text-pink-700" /> : <ChevronDown className="text-pink-700" />}
+              </div>
+              {expandedMetrics.year2 && (
+                <div className="mt-3 pt-3 border-t border-pink-300 text-xs text-pink-800 space-y-1">
+                  {partnersData.filter(site => site.projStartYear === "YEAR 2").map(site => (
+                    <div key={site.id}>• {site.nameOrganization}</div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-5 rounded-xl shadow-lg border-2 border-blue-300 hover:shadow-2xl transition-shadow">
               <div className="text-2xl font-bold text-blue-900">{stats.scatrCompleted}</div>
