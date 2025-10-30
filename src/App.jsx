@@ -812,6 +812,14 @@ const ProjectPartnerDashboard = () => {
   const TableView = () => {
     return (
       <div className="space-y-4">
+        <div className="p-5 bg-gradient-to-r from-purple-100 to-purple-50 rounded-xl shadow-inner border-2 border-purple-200">
+          <p className="text-sm text-gray-800 leading-relaxed">
+            These {stats.totalPartners} sites represent the culmination of the project's <span className="font-semibold text-purple-900">Fiscal Year 2</span> (April 1st, 2025 to March 31st, 2026). 
+            There are 2 remaining fiscal years: <span className="font-semibold text-purple-900">Fiscal Year 3</span> (April 1st, 2026 to March 31st, 2027) and <span className="font-semibold text-purple-900">Fiscal Year 4</span> (April 1st, 2027 to March 31st, 2028). 
+            Each of the final two years will have <span className="font-semibold text-purple-900">2 vacancies</span> each for additional sites and/or device allocations. 
+            Therefore there are <span className="font-semibold text-purple-900">4 total project partner vacancies and/or device allocations</span> remaining until project end.
+          </p>
+        </div>
         <div className="flex justify-end">
           <button
             onClick={() => setCompactTable(!compactTable)}
@@ -825,31 +833,31 @@ const ProjectPartnerDashboard = () => {
           <table className={`w-full border-collapse ${compactTable ? '' : 'text-sm'}`} style={compactTable ? { fontSize: '0.65rem' } : {}}>
             <thead>
               <tr className="bg-gradient-to-r from-purple-700 to-purple-900 text-white">
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Status</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Participation Status</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Name/Organization</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Address</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Address (Device)</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>City</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Prov</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Primary Contact</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Email</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Phone</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Phone Number</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Additional Contact</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Email</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Phone</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Agreement</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Devices</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Serial #1</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Status #1</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Type #1</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Serial #2</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Status #2</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Type #2</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Year</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Scatr Training</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>PWLLE Training</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Expiration</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Phone Number</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Collaborative Site Agreement Status</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Devices Assign'd</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Device Serial #1</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Exemption Status #1</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Exemption Type #1</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Device Serial #2</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Exemption Status #2</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Exemption Type #2</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Proj Start YEAR</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Scatr Delivery_Training Date(s)</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>PWLLE Training Date(s)</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Exemption Expiration Date</th>
                 <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Days Left</th>
-                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>File Name</th>
+                <th className={`border border-purple-300 ${compactTable ? 'p-0.5' : 'p-2'} text-left`}>Exemption File Name</th>
               </tr>
             </thead>
             <tbody>
@@ -905,7 +913,7 @@ const ProjectPartnerDashboard = () => {
         <div className="flex items-start gap-4">
           <Award className="mt-1 flex-shrink-0" size={40} />
           <div>
-            <h1 className="text-2xl font-bold mb-2">The University of Western Ontario - Novel Two Phase Drug-Checking Initiative: A Health Canada Substance Use and Addictions Program</h1>
+            <h1 className="text-2xl font-bold mb-2">The University of Western Ontario - A Novel Two Phase Drug-Checking Initiative:  Contribution Agreement Funding Provided by Health Canada's Substance Use and Addictions  Program</h1>
             <p className="text-lg mb-1 flex items-center gap-2">
               <Users size={20} />
               In partnership with Scatr Inc
@@ -952,15 +960,6 @@ const ProjectPartnerDashboard = () => {
             <h2 className="font-bold text-2xl text-purple-900">Summary Metrics</h2>
           </div>
           
-          <div className="mb-6 p-5 bg-gradient-to-r from-purple-100 to-purple-50 rounded-xl shadow-inner border-2 border-purple-200">
-            <p className="text-sm text-gray-800 leading-relaxed">
-              These {stats.totalPartners} sites represent the culmination of the project's <span className="font-semibold text-purple-900">Fiscal Year 2</span> (April 1st, 2025 to March 31st, 2026). 
-              There are 2 remaining fiscal years: <span className="font-semibold text-purple-900">Fiscal Year 3</span> (April 1st, 2026 to March 31st, 2027) and <span className="font-semibold text-purple-900">Fiscal Year 4</span> (April 1st, 2027 to March 31st, 2028). 
-              Each of the final two years will have <span className="font-semibold text-purple-900">2 vacancies</span> each for additional sites and/or device allocations. 
-              Therefore there are <span className="font-semibold text-purple-900">4 total project partner vacancies and/or device allocations</span> remaining until project end.
-            </p>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-5 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-2xl transition-shadow cursor-pointer"
                  onClick={() => toggleMetric('total')}>
