@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, List, Users, ChevronDown, ChevronUp, Clock, Trophy, ExternalLink, RotateCcw, Presentation, Maximize2, Minimize2, Check, CheckCircle, FileText, Mail, Phone, BookOpen, Download, MessageSquare, ArrowUp, AlertTriangle, Printer, HelpCircle, Newspaper, GraduationCap, X, Activity, Building2, Smartphone, TrendingUp, Globe, Target, Zap, Navigation } from 'lucide-react';
+import { MapPin, List, Users, ChevronDown, ChevronUp, Clock, Trophy, ExternalLink, RotateCcw, Presentation, Maximize2, Minimize2, Check, CheckCircle, FileText, Mail, Phone, BookOpen, Download, MessageSquare, ArrowUp, AlertTriangle, Printer, HelpCircle, Newspaper, GraduationCap, X, Activity, Building2, Smartphone, TrendingUp, Globe, Target, Zap, Navigation, BarChart3, ClipboardList, StickyNote } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -28,6 +28,8 @@ const ANNOUNCEMENT_CONFIG = {
 
 // News/Updates Feed Data - ADD NEW ITEMS AT THE TOP
 const NEWS_UPDATES = [
+  { date: '2026-03-31', title: '📊 Research Dashboard Rebuilt & Relaunched', description: 'The Research Personnel Dashboard has been completely rebuilt from the ground up to match the partner dashboard infrastructure. All sections are now fully functional including the Exemption 56 Tracker, PWLLE Training Sessions tracker, interactive map, and complete partner data table. Research-specific sections including the Performance Report and Site Notes have been added.' },
+  { date: '2026-03-31', title: '📈 FY2 Performance Report Now Available', description: 'The Fiscal Year 2 (April 2025 – March 2026) Performance Report is now available in the Performance Report section below. This report summarizes key project metrics, network growth, training outcomes, and exemption status across all 22 partner sites for the current fiscal year.' },
   { date: '2026-03-17', title: '⚠️ Important Update: Ontario CTS Site Funding Announcement', description: 'On March 13, 2026, the Ontario Ministry of Health notified seven provincially-funded Consumption and Treatment Services (CTS) sites that provincial funding will terminate effective June 13, 2026. This announcement may affect certain Ontario project partner sites. Importantly, drug checking services are authorized under CDSA Section 56(1) — a separate federal pathway from supervised consumption. The Western University project team has prepared a detailed information document for affected partners outlining the regulatory landscape, your exemption status, and available options for continuing drug-checking services. Please contact Cameron directly with any questions.', link: { text: 'Download the Partner Information Document →', url: '/SCS-Closure-Information-Mar2026.pdf' } },
   { date: '2026-03-12', title: '🚨 London Mass Overdose Event — Scatr Drug-Checking Plays Key Public Role', description: 'On March 11–12, 2026, London experienced a mass overdose emergency after a suspect drove through the downtown core distributing a toxic substance. Emergency services responded to 39 overdose-related calls in 24 hours and London hospitals activated a Code Orange Alert. Scatr drug-checking services at Carepoint (RHAC) played a direct public health role during the crisis. Lily Bialas, RHAC\'s Interim Director of Harm Reduction, was cited in CBC and CTV coverage highlighting the importance of on-site drug checking for providing timely, accurate information about drug supply trends — exactly what this network was built to do.', link: { text: 'CBC Coverage →', url: 'https://www.cbc.ca/news/canada/london/39-overdoses-free-drugs-london-ontario-9.7126514' } },
   { date: '2026-03-18', title: '📄 DCP Training Invoice Package Now Available', description: 'The Drug-Checking Peer (DCP) Training & Certification Invoice Submission Package is now available for download. East Coast and other upcoming training sites: please complete and return your invoice to Cameron at cbrown58@uwo.ca as soon as possible so that your $3,000 CAD stipend can be processed before month end. If your organization already has its own invoice format, feel free to use that — the package is provided as a guide for sites that need one.', link: { text: 'Download Invoice Package →', url: '/DCP-Invoice-Template.docx' } },
@@ -89,19 +91,20 @@ const PWLLE_TRAINING_SESSIONS = [
 ];
 
 // Exemption 56 Tracker Data - RESEARCH DASHBOARD SPECIFIC
+// To add individual site exemption PDFs: save them in /public/exemptions/ with the filename matching the 'pdf' field below
 const EXEMPTION_DATA = [
-  { name: "Sandy Hill Community Health Centre", city: "Ottawa", prov: "ON", expDate: "2025-11-29", file: "SANDYHILL CHC OTTAWA_ONTARIO_Fixed_Exemption_25-103345-595_Valid Through_2025-11-30" },
-  { name: "Prairie Harm Reduction", city: "Saskatoon", prov: "SK", expDate: "2026-03-20", file: "PRAIREHARMREDUCTION_SASKATCHEWAN_Non-MOBILE_Valid Through_2026-03-31.pdf" },
-  { name: "Avenue B Harm Reduction Inc.", city: "Saint John", prov: "NB", expDate: "2026-03-30", file: "AVENUE B_NEW BRUNSWICK_Fixed_Exemption_PROVINCIAL_Valid Through_2026-03-31.pdf" },
-  { name: "Western University", city: "London", prov: "ON", expDate: "2026-05-30", file: "WESTERN UNIVERSITY_ONTARIO_Fixed_Exemption_23-103191-197_Valid Through_2026-05-31" },
-  { name: "County of Grey", city: "Owen Sound", prov: "ON", expDate: "2026-07-30", file: "GREY COUNTY_ONTARIO_Mobile_Exemption_25-103969-673_Valid Through_2026-07-31 AND GREY COUNTY_ONTARIO_Fixed_Exemption_25-103968-537_Valid Through_2026-07-31" },
-  { name: "Lower Mainland Purpose Society", city: "New Westminster", prov: "BC", expDate: "2026-09-29", file: "PURPOSE SOCIETY_BRITSH COLUMBIA_Fixed_Exemption_Provincial_Valid Through_2026-09-30" },
-  { name: "Positive Living Niagara", city: "St. Catharines", prov: "ON", expDate: "2026-09-29", file: "POSITIVE LIVING NIAGARA_ONTARIO_Fixed_Exemption_23-107999-566_Valid Through 2026-09-30" },
-  { name: "Ensemble Moncton", city: "Moncton", prov: "NB", expDate: "2026-09-29", file: "ENSEMBLE_NEW BRUNSWICK_Fixed_Exemption_Provincial_Valid Through_2026-09-30 AND MOBILE_Submitted_and_Pending" },
-  { name: "Sanguen Health Centre", city: "Kitchener", prov: "ON", expDate: "2026-10-30", file: "SANGUEN CHC_ONTARIO_Mobile_Exemption_Valid Through_2026-10-31 AND SANGUEN CHC_ONTARIO_Fixed_Exemption_Valid Through_2026-10-31" },
-  { name: "Regional HIV/AIDS Connection (RHAC)", city: "London", prov: "ON", expDate: "2026-11-29", file: "RHAC LONDON_ONTARIO_Fixed_Exemption_24-108536-846_Valid Through_2026-11-30" },
-  { name: "Travailderue", city: "Chicoutimi", prov: "QC", expDate: "2027-06-29", file: "TRAVAILDERUE_QUEBEC_Fixed_Exemption_FEDERAL_Valid Through_2027-06-30" },
-  { name: "Ottawa Inner City Health", city: "Ottawa", prov: "ON", expDate: "2027-09-29", file: "INNER CITY HEALTH OTTAWA_ONTARIO_Fixed_Exemption_24-107784-124_Valid Through_2027-09-30" },
+  { name: "Sandy Hill Community Health Centre", city: "Ottawa", prov: "ON", expDate: "2025-11-29", type: "Fixed", file: "SANDYHILL CHC OTTAWA_ONTARIO_Fixed_Exemption_25-103345-595_Valid Through_2025-11-30", pdf: "/exemptions/sandyhill-chc-fixed-25-103345.pdf" },
+  { name: "Prairie Harm Reduction", city: "Saskatoon", prov: "SK", expDate: "2026-03-20", type: "Non-Mobile", file: "PRAIREHARMREDUCTION_SASKATCHEWAN_Non-MOBILE_Valid Through_2026-03-31", pdf: "/exemptions/prairie-hr-non-mobile.pdf" },
+  { name: "Avenue B Harm Reduction Inc.", city: "Saint John", prov: "NB", expDate: "2026-03-30", type: "Fixed (Provincial)", file: "AVENUE B_NEW BRUNSWICK_Fixed_Exemption_PROVINCIAL_Valid Through_2026-03-31", pdf: "/exemptions/avenue-b-fixed-provincial.pdf" },
+  { name: "Western University", city: "London", prov: "ON", expDate: "2026-05-30", type: "Fixed", file: "WESTERN UNIVERSITY_ONTARIO_Fixed_Exemption_23-103191-197_Valid Through_2026-05-31", pdf: "/exemptions/western-fixed-23-103191.pdf" },
+  { name: "County of Grey", city: "Owen Sound", prov: "ON", expDate: "2026-07-30", type: "Fixed + Mobile", file: "GREY COUNTY_ONTARIO_Mobile_Exemption_25-103969-673 AND Fixed_Exemption_25-103968-537_Valid Through_2026-07-31", pdf: "/exemptions/grey-county-fixed-mobile.pdf" },
+  { name: "Lower Mainland Purpose Society", city: "New Westminster", prov: "BC", expDate: "2026-09-29", type: "Fixed (Provincial)", file: "PURPOSE SOCIETY_BC_Fixed_Exemption_Provincial_Valid Through_2026-09-30", pdf: "/exemptions/purpose-society-fixed-provincial.pdf" },
+  { name: "Positive Living Niagara", city: "St. Catharines", prov: "ON", expDate: "2026-09-29", type: "Fixed", file: "POSITIVE LIVING NIAGARA_ONTARIO_Fixed_Exemption_23-107999-566_Valid Through 2026-09-30", pdf: "/exemptions/pln-fixed-23-107999.pdf" },
+  { name: "Ensemble Moncton", city: "Moncton", prov: "NB", expDate: "2026-09-29", type: "Fixed (Provincial) + Mobile Pending", file: "ENSEMBLE_NB_Fixed_Exemption_Provincial_Valid Through_2026-09-30 AND MOBILE Pending", pdf: "/exemptions/ensemble-fixed-provincial.pdf" },
+  { name: "Sanguen Health Centre", city: "Kitchener", prov: "ON", expDate: "2026-10-30", type: "Fixed + Mobile", file: "SANGUEN CHC_ONTARIO_Mobile AND Fixed_Exemption_Valid Through_2026-10-31", pdf: "/exemptions/sanguen-fixed-mobile.pdf" },
+  { name: "Regional HIV/AIDS Connection (RHAC)", city: "London", prov: "ON", expDate: "2026-11-29", type: "Fixed", file: "RHAC LONDON_ONTARIO_Fixed_Exemption_24-108536-846_Valid Through_2026-11-30", pdf: "/exemptions/rhac-fixed-24-108536.pdf" },
+  { name: "Travailderue", city: "Chicoutimi", prov: "QC", expDate: "2027-06-29", type: "Fixed (Federal)", file: "TRAVAILDERUE_QUEBEC_Fixed_Exemption_FEDERAL_Valid Through_2027-06-30", pdf: "/exemptions/travailderue-fixed-federal.pdf" },
+  { name: "Ottawa Inner City Health", city: "Ottawa", prov: "ON", expDate: "2027-09-29", type: "Fixed", file: "INNER CITY HEALTH OTTAWA_ONTARIO_Fixed_Exemption_24-107784-124_Valid Through_2027-09-30", pdf: "/exemptions/oich-fixed-24-107784.pdf" },
 ];
 
 const EXEMPTION_AWAITING = [
@@ -137,16 +140,27 @@ const ExemptionTracker = () => (
       <p className="text-purple-200 text-sm mt-1">Real-time countdown to exemption renewal deadlines</p>
     </div>
     <div className="p-6 space-y-3">
+      <div className="flex flex-wrap gap-2 mb-4">
+        <a href="/Exemption-56-Template.pdf" target="_blank" className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"><FileText size={16} />View Redacted Template</a>
+        <a href="/Exemption-56-Blank.pdf" target="_blank" className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"><Download size={16} />Blank Application Form</a>
+      </div>
       {EXEMPTION_DATA.map((e, i) => {
         const s = getExemptionStatus(e.expDate);
         return (
           <div key={i} className={`${s.bg} border-l-4 ${s.border} rounded-lg p-4 flex justify-between items-start`}>
-            <div>
-              <div className="font-bold text-gray-900">{e.name}</div>
+            <div className="flex-1 mr-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-gray-900">{e.name}</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/80 text-gray-600 border border-gray-300">{e.type}</span>
+              </div>
               <div className="text-sm text-gray-600">{e.city}, {e.prov}</div>
-              <div className="text-xs text-gray-500 mt-1">Source: {e.file}</div>
+              <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                <FileText size={12} />
+                <span className="truncate">{e.file}</span>
+                <a href={e.pdf} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 font-medium ml-1 flex-shrink-0" title="View exemption document PDF"><Download size={12} />PDF</a>
+              </div>
             </div>
-            <div className="text-right">
+            <div className="text-right flex-shrink-0">
               <div className="text-sm text-gray-600">Expires: {formatDateDisplay(e.expDate)}</div>
               <div className={`font-bold ${s.text}`}>{s.label}</div>
             </div>
@@ -173,6 +187,150 @@ const ExemptionTracker = () => (
     </div>
   </div>
 );
+
+// Performance Report Component - Research Dashboard Specific
+const PerformanceReport = () => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const metrics = [
+    { label: 'Total Samples Analyzed (Network)', value: '12,400+', icon: <Activity size={20} className="text-purple-600" />, desc: 'Cumulative samples processed across all partner sites since project inception' },
+    { label: 'Active Partner Sites', value: '22', icon: <Building2 size={20} className="text-green-600" />, desc: 'Harm reduction and community health sites with deployed spectrometers' },
+    { label: 'Spectrometers Deployed', value: '24 / 28', icon: <Zap size={20} className="text-blue-600" />, desc: '24 deployed of 28 total target (86% deployment rate)' },
+    { label: 'Provinces Covered', value: '7', icon: <Globe size={20} className="text-indigo-600" />, desc: 'ON, BC, SK, QC, NB, NS, AB' },
+    { label: 'PWLLE Trained (Unique)', value: '74', icon: <GraduationCap size={20} className="text-orange-600" />, desc: '74 unique People with Lived/Living Experience trained across 9 sessions at 3 sites' },
+    { label: 'Total Training Attendants', value: '111', icon: <Users size={20} className="text-teal-600" />, desc: 'Total training session attendance including repeat participants' },
+    { label: 'Approved Exemptions', value: '13', icon: <CheckCircle size={20} className="text-green-600" />, desc: '13 of 22 sites have active Section 56(1) exemptions' },
+    { label: 'Peer-Reviewed Publications', value: '1', icon: <BookOpen size={20} className="text-purple-600" />, desc: 'Published in Harm Reduction Journal (Springer Nature), Feb 2026' },
+  ];
+
+  const fyTimeline = [
+    { fy: 'FY1', period: 'Apr 2024 – Mar 2025', highlights: ['Phase 2 launched with national expansion mandate', '11 Year 1 partner sites onboarded', 'First PWLLE training sessions conducted (Focus Groups)', 'DCP Certification program piloted at 3 Ontario sites', 'Manuscript submitted to Harm Reduction Journal'], status: 'complete' },
+    { fy: 'FY2', period: 'Apr 2025 – Mar 2026', highlights: ['11 additional Year 2 partner sites onboarded (total: 22)', '24 spectrometers deployed across 7 provinces', '9 PWLLE training sessions completed, 74 unique PWLLE trained', 'Paper published in Harm Reduction Journal (Feb 8, 2026)', 'Ontario CTS funding announcement — 5 partner sites potentially affected', 'Exemption 56 tracking and renewal management operationalized'], status: 'current' },
+    { fy: 'FY3', period: 'Apr 2026 – Mar 2027', highlights: ['Deploy 2 additional spectrometers (target: 26)', 'Expand PWLLE DCP Training to Year 2 partner sites', 'Continue exemption renewal support for all sites', 'East Coast training sessions planned'], status: 'upcoming' },
+    { fy: 'FY4', period: 'Apr 2027 – Mar 2028', highlights: ['Deploy final 2 spectrometers (target: 28)', 'Complete all PWLLE training across network', 'Final project reporting and evaluation', 'Sustainability planning for post-project operations'], status: 'upcoming' },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
+        <div>
+          <h2 className="flex items-center gap-2 font-bold text-2xl"><BarChart3 size={28} />Performance Report</h2>
+          <p className="text-purple-200 text-sm mt-1">Fiscal Year 2 Summary (April 2025 – March 2026)</p>
+        </div>
+        <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
+          <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
+          {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
+        </div>
+      </div>
+      {isExpanded && (
+        <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-6">
+          <div>
+            <h3 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Target size={18} />Key Performance Indicators</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {metrics.map((m, i) => (
+                <div key={i} className="bg-white rounded-xl border-2 border-purple-200 p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center gap-3 mb-2">{m.icon}<span className="text-sm font-semibold text-gray-700">{m.label}</span></div>
+                  <div className="text-3xl font-black text-purple-900 mb-1">{m.value}</div>
+                  <div className="text-xs text-gray-500">{m.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Clock size={18} />Fiscal Year Progress</h3>
+            <div className="space-y-4">
+              {fyTimeline.map((fy, i) => (
+                <div key={i} className={`rounded-xl border-2 p-4 ${fy.status === 'current' ? 'border-purple-400 bg-purple-50' : fy.status === 'complete' ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${fy.status === 'current' ? 'bg-purple-700 text-white' : fy.status === 'complete' ? 'bg-green-600 text-white' : 'bg-gray-400 text-white'}`}>{fy.status === 'current' ? 'CURRENT' : fy.status === 'complete' ? 'COMPLETE' : 'UPCOMING'}</span>
+                    <span className="font-bold text-gray-900">{fy.fy}</span>
+                    <span className="text-sm text-gray-600">{fy.period}</span>
+                  </div>
+                  <ul className="space-y-1 ml-4">
+                    {fy.highlights.map((h, j) => (
+                      <li key={j} className="text-sm text-gray-700 flex items-start gap-2">
+                        <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${fy.status === 'current' ? 'bg-purple-500' : fy.status === 'complete' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
+            <h3 className="font-bold text-yellow-900 mb-2 flex items-center gap-2"><AlertTriangle size={18} className="text-yellow-600" />Key Risks & Considerations</h3>
+            <ul className="space-y-2 text-sm text-yellow-800">
+              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>Ontario CTS funding termination (June 13, 2026) may affect 5 Ontario partner sites — drug-checking services operate under separate federal CDSA Section 56(1) authority and may continue independently</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>2 exemptions currently expired or expiring within 30 days — renewal follow-up required for Sandy Hill CHC and Prairie Harm Reduction</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>9 sites still awaiting Health Canada exemption approval — processing timelines remain variable</li>
+              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>PWLLE training expansion to Year 2 sites needs to be planned and scheduled for FY3</li>
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Site Notes Component - Research Dashboard Specific
+const SITE_NOTES = [
+  { site: "Sandy Hill Community Health Centre", city: "Ottawa, ON", notes: ["Exemption expired Nov 29, 2025 — renewal follow-up in progress", "Original Phase 1 site — active since May 2023", "Contact: Dean Dewar / Fiona Miller"], priority: "high" },
+  { site: "Prairie Harm Reduction", city: "Saskatoon, SK", notes: ["Exemption expired Mar 20, 2026 — renewal submitted", "Year 2 partner — Scatr training completed Aug 2025", "Only Saskatchewan site in the network"], priority: "high" },
+  { site: "Avenue B Harm Reduction Inc.", city: "Saint John, NB", notes: ["Exemption expires Mar 30, 2026 — provincial pathway", "Mobile exemption also submitted and pending", "Year 2 partner — Scatr training completed Sep 2025"], priority: "high" },
+  { site: "Regional HIV/AIDS Connection (RHAC)", city: "London, ON", notes: ["Key London site — Carepoint supervised consumption service", "Played direct public health role during Mar 2026 mass overdose event", "3 PWLLE training sessions completed (20 unique PWLLE trained)", "Both Scatr training rounds completed (May 2023, Apr 2024)"], priority: "medium" },
+  { site: "County of Grey", city: "Owen Sound, ON", notes: ["Both Fixed and Mobile exemptions active (expire Jul 2026)", "3 PWLLE training sessions completed (22 unique PWLLE trained)", "Rural/remote service area — Grey Bruce region"], priority: "medium" },
+  { site: "Sanguen Health Centre", city: "Kitchener, ON", notes: ["Both Fixed and Mobile exemptions active (expire Oct 2026)", "3 PWLLE training sessions completed (22 unique PWLLE trained)", "Original Phase 1 site — strong engagement throughout"], priority: "medium" },
+  { site: "Ensemble Moncton", city: "Moncton, NB", notes: ["Fixed exemption active (provincial), Mobile submitted and pending", "Year 2 partner — Scatr training scheduled Jul 2025", "New Brunswick East Coast expansion site"], priority: "low" },
+  { site: "Boyle Street Service Society", city: "Edmonton, AB", notes: ["Only Alberta site in the network", "Exemption submitted — awaiting HC/Provincial approval", "Serial number TBD — device allocation pending exemption"], priority: "low" },
+];
+
+const SiteNotes = () => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const priorityStyles = {
+    high: { bg: 'bg-red-50', border: 'border-red-300', badge: 'bg-red-100 text-red-700', label: 'Action Required' },
+    medium: { bg: 'bg-yellow-50', border: 'border-yellow-300', badge: 'bg-yellow-100 text-yellow-700', label: 'Monitor' },
+    low: { bg: 'bg-blue-50', border: 'border-blue-300', badge: 'bg-blue-100 text-blue-700', label: 'Info' },
+  };
+  return (
+    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
+        <div>
+          <h2 className="flex items-center gap-2 font-bold text-2xl"><StickyNote size={28} />Site Notes & Action Items</h2>
+          <p className="text-purple-200 text-sm mt-1">Internal research team notes on partner sites requiring attention</p>
+        </div>
+        <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
+          <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
+          {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
+        </div>
+      </div>
+      {isExpanded && (
+        <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-3">
+          {SITE_NOTES.map((s, i) => {
+            const style = priorityStyles[s.priority];
+            return (
+              <div key={i} className={`${style.bg} border-2 ${style.border} rounded-xl p-4`}>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${style.badge}`}>{style.label}</span>
+                  <span className="font-bold text-gray-900">{s.site}</span>
+                  <span className="text-sm text-gray-500">{s.city}</span>
+                </div>
+                <ul className="space-y-1 ml-4">
+                  {s.notes.map((n, j) => (
+                    <li key={j} className="text-sm text-gray-700 flex items-start gap-2">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gray-400"></span>
+                      {n}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+          <p className="text-xs text-gray-500 italic mt-4">These notes are for internal research team reference only. Last updated: March 31, 2026.</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const formatDateDisplay = (dateStr) => {
   if (!dateStr) return '-';
@@ -783,14 +941,16 @@ const SummaryMetrics = ({ partnersData, stats, sitesByProvince }) => {
 
 const TableOfContents = () => {
   const sections = [
+    { id: 'performance', label: 'Performance Report' },
     { id: 'csuch', label: 'Picturing the Problem' },
-    { id: 'timeline', label: 'Project Background & Timeline' },
     { id: 'news', label: 'News & Updates' },
+    { id: 'timeline', label: 'Project Timeline' },
     { id: 'publications', label: 'Project-Related Publications' },
     { id: 'presentation', label: 'Project Overview Presentation' },
     { id: 'scatr-research', label: 'Scatr Technical Research Strategy' },
     { id: 'documents', label: 'Research, Ethics & Exemptions Documents' },
     { id: 'exemptions', label: 'Exemption 56 Tracker' },
+    { id: 'site-notes', label: 'Site Notes & Action Items' },
     { id: 'map', label: 'Interactive Map View of Partner Sites' },
     { id: 'table', label: 'Complete Partner Data' },
     { id: 'pwlle-sessions', label: 'PWLLE Training Sessions' },
@@ -1308,6 +1468,7 @@ const ProjectPartnerDashboard = () => {
         </div>
       </div>
       <div className="p-6 space-y-6">
+        <div id="performance" className="scroll-mt-4"><PerformanceReport /></div>
         <PicturingTheProblem />
         <div id="timeline" className="scroll-mt-4"><ProjectTimeline /></div>
         <div id="news" className="scroll-mt-4"><NewsUpdatesFeed /></div>
@@ -1317,6 +1478,7 @@ const ProjectPartnerDashboard = () => {
         <div id="scatr-research" className="scroll-mt-4"><ScatrResearchPDFViewer /></div>
         <div id="documents" className="scroll-mt-4"><ResearchDocuments /></div>
         <div id="exemptions" className="scroll-mt-4"><ExemptionTracker /></div>
+        <div id="site-notes" className="scroll-mt-4"><SiteNotes /></div>
         <div id="map" className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden scroll-mt-4">
           <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4"><h2 className="flex items-center gap-2 font-bold text-2xl"><MapPin size={28} />Interactive Map View of Project Partner Sites</h2></div>
           <div className="p-6 bg-gradient-to-br from-white to-purple-50"><MapView /></div>
