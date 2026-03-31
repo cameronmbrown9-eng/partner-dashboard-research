@@ -32,17 +32,12 @@ const NEWS_UPDATES = [
   { date: '2026-03-31', title: '📈 FY2 Performance Report Now Available', description: 'The Fiscal Year 2 (April 2025 – March 2026) Performance Report is now available in the Performance Report section below. This report summarizes key project metrics, network growth, training outcomes, and exemption status across all 22 partner sites for the current fiscal year.' },
   { date: '2026-03-17', title: '⚠️ Important Update: Ontario CTS Site Funding Announcement', description: 'On March 13, 2026, the Ontario Ministry of Health notified seven provincially-funded Consumption and Treatment Services (CTS) sites that provincial funding will terminate effective June 13, 2026. This announcement may affect certain Ontario project partner sites. Importantly, drug checking services are authorized under CDSA Section 56(1) — a separate federal pathway from supervised consumption. The Western University project team has prepared a detailed information document for affected partners outlining the regulatory landscape, your exemption status, and available options for continuing drug-checking services. Please contact Cameron directly with any questions.', link: { text: 'Download the Partner Information Document →', url: '/SCS-Closure-Information-Mar2026.pdf' } },
   { date: '2026-03-12', title: '🚨 London Mass Overdose Event — Scatr Drug-Checking Plays Key Public Role', description: 'On March 11–12, 2026, London experienced a mass overdose emergency after a suspect drove through the downtown core distributing a toxic substance. Emergency services responded to 39 overdose-related calls in 24 hours and London hospitals activated a Code Orange Alert. Scatr drug-checking services at Carepoint (RHAC) played a direct public health role during the crisis. Lily Bialas, RHAC\'s Interim Director of Harm Reduction, was cited in CBC and CTV coverage highlighting the importance of on-site drug checking for providing timely, accurate information about drug supply trends — exactly what this network was built to do.', link: { text: 'CBC Coverage →', url: 'https://www.cbc.ca/news/canada/london/39-overdoses-free-drugs-london-ontario-9.7126514' } },
-  { date: '2026-03-18', title: '📄 DCP Training Invoice Package Now Available', description: 'The Drug-Checking Peer (DCP) Training & Certification Invoice Submission Package is now available for download. East Coast and other upcoming training sites: please complete and return your invoice to Cameron at cbrown58@uwo.ca as soon as possible so that your $3,000 CAD stipend can be processed before month end. If your organization already has its own invoice format, feel free to use that — the package is provided as a guide for sites that need one.', link: { text: 'Download Invoice Package →', url: '/DCP-Invoice-Template.docx' } },
   { date: '2026-03-18', title: '⚠️ Ontario CTS Funding Cuts — Drug-Checking Services Context', description: 'On March 13, 2026, the Ontario Ministry of Health notified seven provincially-funded Consumption and Treatment Services (CTS) sites that provincial funding will terminate effective June 13, 2026. Five of our Ontario partner sites may be affected. Critically, the Province confirmed in court proceedings that drug-checking services are NOT captured by the CCRA — they are authorized under a separate federal CDSA Section 56(1) pathway and may be able to continue independently of supervised consumption services. Please read the full information document and contact Cameron directly with any questions.', link: { text: 'Read the Full Information Document →', url: '/SCS-Closure-Information-Mar2026.pdf' } },
   { date: '2026-02-08', title: '🎉 Paper Published in Harm Reduction Journal!', description: 'Our peer-reviewed manuscript has been published as open access in Harm Reduction Journal (Springer Nature). The paper — "Street drug monitoring with networked spectrometers powered by machine learning: a pilot study in Ontario, Canada" — reports on 7,752 samples analyzed across 10 Ontario sites over 14 months, comparing Raman spectroscopy against HPLC-MS and documenting participant consumption-related behavior changes. Congratulations to all co-authors and partner sites whose participation made this research possible!', link: { text: 'Read the Full Paper (Open Access) →', url: 'https://link.springer.com/article/10.1186/s12954-026-01403-3' } },
   { date: '2025-12-13', title: 'New Resource: Standard Operating Procedures for Sample Preparation', description: 'We have published the official Standard Operating Procedures (SOP) for Sample Preparation document. This resource outlines the proper protocols for packaging and labelling samples for transport to the Western Laboratory. All partner sites are reminded to review and adhere to these SOPs to ensure sample integrity, regulatory compliance, and accurate analysis results.', link: { text: 'View the SOP Document', url: '/SOP-Sample-Preparation.pdf' } },
-  { date: '2025-12-12', title: 'Reminder: Sample Submission Accountability', description: 'Health Canada requires every sample to be accounted for. Please only use the sample submission feature in the Scatr portal when there is a real sample to submit. Accurate record-keeping is essential for regulatory compliance and the integrity of our network data.' },
   { date: '2025-12-12', title: 'Health Canada Releases Updated National Opioid & Stimulant Harms Data', description: 'The Public Health Agency of Canada has published updated national surveillance data showing a 17% decrease in opioid toxicity deaths in 2024 compared to 2023. Key findings: deaths dropped from 8,623 (2023) to 7,146 (2024), averaging 20 deaths per day (down from 22). Hospitalizations also fell 15%, alongside similar decreases in EMS responses and ED visits. BC, Alberta, Saskatchewan, Ontario, New Brunswick, and Yukon all reported decreases, with some jurisdictions attributing the decline partly to lower fentanyl concentrations in the drug supply.', link: { text: 'View the Full Report', url: 'https://health-infobase.canada.ca/substance-related-harms/opioids-stimulants/' } },
-  { date: '2025-12-12', title: 'Share Your Story: PWLLE Voices Needed', description: 'At the heart of this project is a simple belief: the best improvements to drug-checking services come directly from the people who use them. We want to hear from People with Lived or Living Experience (PWLLEs) who are willing to share their stories and perspectives. Your insights help shape how these services evolve. Interested in having a conversation? Contact Cameron at cbrown58@uwo.ca — no pressure, just a chance to be heard.' },
-  { date: '2025-12-12', title: 'Exemption 56 Document Reminder', description: 'Please don\'t forget to send Cameron your site\'s updated Exemption 56 Approval Document(s) as soon as possible subsequent to their receipt.' },
   { date: '2025-12-11', title: 'Project Partner Dashboard Launched', description: 'The new interactive dashboard is now live, providing partners with centralized access to project information, documents, and contact details.' },
   { date: '2025-12-01', title: '22 Partner Sites Now Active', description: 'We have successfully onboarded 22 partner sites across 7 provinces, 20 cities, with 24 spectrometers deployed.' },
-  { date: '2025-11-15', title: 'Drug-Checking Peer Training Program Begins', description: 'Virtual training sessions are now being scheduled for partner sites. Contact the Project Manager to arrange training for your team.' },
   { date: '2025-09-15', title: 'Manuscript Submitted to Harm Reduction Journal', description: 'Our peer-reviewed paper on street drug monitoring using Raman spectroscopy was submitted for review — now published February 8, 2026! See the News & Updates section above for the link.' },
 ];
 
@@ -88,13 +83,14 @@ const PWLLE_TRAINING_SESSIONS = [
   { id: 7, site: "Sanguen Health Centre", location: "Kitchener, ON", sessionNum: 3, scheduledDate: "2025-03-17", purpose: "DCP Certification", completed: "Complete", attendants: 10, newAttendants: 3, notes: "DCP Pre- and Post-Surveys" },
   { id: 8, site: "Grey County", location: "Owen Sound, ON", sessionNum: 3, scheduledDate: "2025-05-30", purpose: "DCP Certification", completed: "Complete", attendants: 12, newAttendants: 12, notes: "DCP Pre- and Post-Surveys" },
   { id: 9, site: "Regional HIV/AIDS Connection", location: "London, ON", sessionNum: 3, scheduledDate: "2025-04-15", purpose: "DCP Certification", completed: "Complete", attendants: 20, newAttendants: 6, notes: "DCP Pre- and Post-Surveys" },
+  { id: 10, site: "Avenue B Harm Reduction Inc.", location: "Saint John, NB", sessionNum: 1, scheduledDate: "2026-03-27", purpose: "DCP Certification", completed: "Complete", attendants: 17, newAttendants: 17, notes: "Awaiting receipt of LOICs and Surveys for final signature and input" },
 ];
 
 // Exemption 56 Tracker Data - RESEARCH DASHBOARD SPECIFIC
 // To add individual site exemption PDFs: save them in /public/exemptions/ with the filename matching the 'pdf' field below
 const EXEMPTION_DATA = [
   { name: "Sandy Hill Community Health Centre", city: "Ottawa", prov: "ON", expDate: "2025-11-29", type: "Fixed", file: "SANDYHILL CHC OTTAWA_ONTARIO_Fixed_Exemption_25-103345-595_Valid Through_2025-11-30", pdf: "/exemptions/sandyhill-chc-fixed-25-103345.pdf" },
-  { name: "Prairie Harm Reduction", city: "Saskatoon", prov: "SK", expDate: "2026-03-20", type: "Non-Mobile", file: "PRAIREHARMREDUCTION_SASKATCHEWAN_Non-MOBILE_Valid Through_2026-03-31", pdf: "/exemptions/prairie-hr-non-mobile.pdf" },
+  { name: "Prairie Harm Reduction", city: "Saskatoon", prov: "SK", expDate: "2026-03-20", type: "Non-Mobile", file: "PRAIREHARMREDUCTION_SASKATCHEWAN_Non-MOBILE_Valid Through_2026-03-31", pdf: "/exemptions/prairie-hr-non-mobile.pdf", alert: "⚠️ Funding temporarily suspended by Health Canada — services on hold" },
   { name: "Avenue B Harm Reduction Inc.", city: "Saint John", prov: "NB", expDate: "2026-03-30", type: "Fixed (Provincial)", file: "AVENUE B_NEW BRUNSWICK_Fixed_Exemption_PROVINCIAL_Valid Through_2026-03-31", pdf: "/exemptions/avenue-b-fixed-provincial.pdf" },
   { name: "Western University", city: "London", prov: "ON", expDate: "2026-05-30", type: "Fixed", file: "WESTERN UNIVERSITY_ONTARIO_Fixed_Exemption_23-103191-197_Valid Through_2026-05-31", pdf: "/exemptions/western-fixed-23-103191.pdf" },
   { name: "County of Grey", city: "Owen Sound", prov: "ON", expDate: "2026-07-30", type: "Fixed + Mobile", file: "GREY COUNTY_ONTARIO_Mobile_Exemption_25-103969-673 AND Fixed_Exemption_25-103968-537_Valid Through_2026-07-31", pdf: "/exemptions/grey-county-fixed-mobile.pdf" },
@@ -154,6 +150,7 @@ const ExemptionTracker = () => (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/80 text-gray-600 border border-gray-300">{e.type}</span>
               </div>
               <div className="text-sm text-gray-600">{e.city}, {e.prov}</div>
+              {e.alert && <div className="text-xs font-bold text-red-700 bg-red-50 border border-red-300 rounded px-2 py-1 mt-1">{e.alert}</div>}
               <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                 <FileText size={12} />
                 <span className="truncate">{e.file}</span>
@@ -196,8 +193,8 @@ const PerformanceReport = () => {
     { label: 'Active Partner Sites', value: '22', icon: <Building2 size={20} className="text-green-600" />, desc: 'Harm reduction and community health sites with deployed spectrometers' },
     { label: 'Spectrometers Deployed', value: '24 / 28', icon: <Zap size={20} className="text-blue-600" />, desc: '24 deployed of 28 total target (86% deployment rate)' },
     { label: 'Provinces Covered', value: '7', icon: <Globe size={20} className="text-indigo-600" />, desc: 'ON, BC, SK, QC, NB, NS, AB' },
-    { label: 'PWLLE Trained (Unique)', value: '74', icon: <GraduationCap size={20} className="text-orange-600" />, desc: '74 unique People with Lived/Living Experience trained across 9 sessions at 3 sites' },
-    { label: 'Total Training Attendants', value: '111', icon: <Users size={20} className="text-teal-600" />, desc: 'Total training session attendance including repeat participants' },
+    { label: 'PWLLE Trained (Unique)', value: '91', icon: <GraduationCap size={20} className="text-orange-600" />, desc: '91 unique People with Lived/Living Experience trained across 10 sessions at 4 sites' },
+    { label: 'Total Training Attendants', value: '128', icon: <Users size={20} className="text-teal-600" />, desc: 'Total training session attendance including repeat participants' },
     { label: 'Approved Exemptions', value: '13', icon: <CheckCircle size={20} className="text-green-600" />, desc: '13 of 22 sites have active Section 56(1) exemptions' },
     { label: 'Peer-Reviewed Publications', value: '1', icon: <BookOpen size={20} className="text-purple-600" />, desc: 'Published in Harm Reduction Journal (Springer Nature), Feb 2026' },
   ];
@@ -275,8 +272,8 @@ const PerformanceReport = () => {
 // Site Notes Component - Research Dashboard Specific
 const SITE_NOTES = [
   { site: "Sandy Hill Community Health Centre", city: "Ottawa, ON", notes: ["Exemption expired Nov 29, 2025 — renewal follow-up in progress", "Original Phase 1 site — active since May 2023", "Contact: Dean Dewar / Fiona Miller"], priority: "high" },
-  { site: "Prairie Harm Reduction", city: "Saskatoon, SK", notes: ["Exemption expired Mar 20, 2026 — renewal submitted", "Year 2 partner — Scatr training completed Aug 2025", "Only Saskatchewan site in the network"], priority: "high" },
-  { site: "Avenue B Harm Reduction Inc.", city: "Saint John, NB", notes: ["Exemption expires Mar 30, 2026 — provincial pathway", "Mobile exemption also submitted and pending", "Year 2 partner — Scatr training completed Sep 2025"], priority: "high" },
+  { site: "Prairie Harm Reduction", city: "Saskatoon, SK", notes: ["⚠️ FUNDING SUSPENDED — Health Canada has temporarily suspended funding; services are currently on hold", "Exemption expired Mar 20, 2026 — renewal submitted", "Year 2 partner — Scatr training completed Aug 2025", "Only Saskatchewan site in the network"], priority: "high" },
+  { site: "Avenue B Harm Reduction Inc.", city: "Saint John, NB", notes: ["Exemption expires Mar 30, 2026 — provincial pathway", "Mobile exemption also submitted and pending", "PWLLE DCP Training Session 1 completed Mar 27, 2026 — 17 participants (all new unique)", "Awaiting receipt of LOICs and Surveys for final signature and input"], priority: "high" },
   { site: "Regional HIV/AIDS Connection (RHAC)", city: "London, ON", notes: ["Key London site — Carepoint supervised consumption service", "Played direct public health role during Mar 2026 mass overdose event", "3 PWLLE training sessions completed (20 unique PWLLE trained)", "Both Scatr training rounds completed (May 2023, Apr 2024)"], priority: "medium" },
   { site: "County of Grey", city: "Owen Sound, ON", notes: ["Both Fixed and Mobile exemptions active (expire Jul 2026)", "3 PWLLE training sessions completed (22 unique PWLLE trained)", "Rural/remote service area — Grey Bruce region"], priority: "medium" },
   { site: "Sanguen Health Centre", city: "Kitchener, ON", notes: ["Both Fixed and Mobile exemptions active (expire Oct 2026)", "3 PWLLE training sessions completed (22 unique PWLLE trained)", "Original Phase 1 site — strong engagement throughout"], priority: "medium" },
@@ -343,7 +340,7 @@ const PWLLETrainingSessionsTracker = () => (
   <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
     <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
       <h2 className="flex items-center gap-2 font-bold text-2xl"><Users size={28} />PWLLE Drug-Checking Peer Training Sessions</h2>
-      <p className="text-purple-200 text-sm mt-1">111 Total Attendants | 74 Unique PWLLE Trained</p>
+      <p className="text-purple-200 text-sm mt-1">128 Total Attendants | 91 Unique PWLLE Trained</p>
     </div>
     <div className="p-6 bg-gradient-to-br from-white to-purple-50">
       <div className="overflow-x-auto">
@@ -942,7 +939,6 @@ const SummaryMetrics = ({ partnersData, stats, sitesByProvince }) => {
 const TableOfContents = () => {
   const sections = [
     { id: 'performance', label: 'Performance Report' },
-    { id: 'csuch', label: 'Picturing the Problem' },
     { id: 'news', label: 'News & Updates' },
     { id: 'timeline', label: 'Project Timeline' },
     { id: 'publications', label: 'Project-Related Publications' },
@@ -1040,29 +1036,6 @@ const ProjectCountdown = () => {
   );
 };
 // ─── End ProjectCountdown ─────────────────────────────────────────────────────
-
-const PicturingTheProblem = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  return (
-    <div id="csuch" className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden scroll-mt-4">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-        <h2 className="flex items-center gap-2 font-bold text-2xl">Picturing the Problem</h2>
-        <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
-          <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
-          {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
-        </div>
-      </div>
-      {isExpanded && (
-        <div className="p-6 bg-gradient-to-br from-white to-purple-50">
-          <a href="https://www.csuch.ca/explore-the-data" target="_blank" rel="noopener noreferrer" className="block hover:opacity-90 transition-opacity">
-            <img src="/csuch-infographic.png" alt="Canadian Substance Use Costs and Harms Infographic" className="w-full rounded-lg shadow-lg cursor-pointer" />
-          </a>
-          <p className="text-sm text-gray-600 mt-4 text-center italic">Source: Canadian Centre on Substance Use and Addiction (CCSA), 2023. <a href="https://www.csuch.ca/explore-the-data" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:text-purple-900 underline">Explore the Data →</a></p>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ProjectPartnerDashboard = () => {
   const [expandedMetrics, setExpandedMetrics] = useState({});
@@ -1436,10 +1409,6 @@ const ProjectPartnerDashboard = () => {
           <div className="mt-6">
             <p className="text-gray-800 leading-relaxed">As of today (<strong>{todayFormatted}</strong>) Phase #2 <em>"Leading the Way: PWLLE at the Forefront of Drug-Checking Initiatives"</em>, funded via Health Canada's Substance Use and Addictions Program (<a href="https://www.canada.ca/en/health-canada/services/substance-use/canadian-drugs-substances-strategy/funding/substance-use-addictions-program.html" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:text-purple-900 underline">SUAP</a>), has successfully allocated <strong>24 total spectrometers</strong> across Canada.</p>
             <p className="text-gray-800 leading-relaxed mt-4">Looking ahead, the project aims to deploy 4 more spectrometers: 2 in Fiscal Year 3 (April 1st 2026 to March 31st 2027) and 2 in Fiscal Year 4 (April 1st 2027 to March 31st 2028), bringing the total network capacity upon project completion, to <strong>28 spectrometers</strong>.</p>
-            <p className="text-gray-800 leading-relaxed mt-4">For those of you undergoing any sort of Exemption 56 related application, renewal, transfer or likewise process, please let Cameron know if he can be of any ongoing assistance at any time.</p>
-            <div className="mt-4 bg-yellow-50 border-4 border-yellow-400 rounded-xl p-4">
-              <p className="text-yellow-900 font-black text-lg leading-snug">⚠️ Please send Cameron copies of all Exemption-related approval documents, notices, or likewise as soon as possible, subsequent to receipt. Thank you kindly.</p>
-            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
             <div className="bg-white p-4 rounded-xl border border-purple-200">
@@ -1463,13 +1432,12 @@ const ProjectPartnerDashboard = () => {
       <div className="text-center py-6 bg-white"><h2 className="text-5xl md:text-6xl font-black text-purple-900 tracking-tight">Research Personnel Dashboard</h2></div>
       <div className="px-6 pb-4">
         <div className="bg-gradient-to-br from-purple-100 to-white p-6 rounded-2xl shadow-lg border-2 border-purple-200">
-          <p className="text-gray-800 leading-relaxed">Welcome to the Research Personnel Dashboard — an internal platform designed specifically for the Western University research team. This dashboard provides comprehensive access to all partner data, exemption tracking, training status, and project documentation.</p>
+          <p className="text-gray-800 leading-relaxed">Welcome to the Research Personnel Dashboard — an internal platform designed specifically for the University research team. This dashboard provides comprehensive access to all partner data, exemption tracking, training status, and project documentation.</p>
           <TableOfContents />
         </div>
       </div>
       <div className="p-6 space-y-6">
         <div id="performance" className="scroll-mt-4"><PerformanceReport /></div>
-        <PicturingTheProblem />
         <div id="timeline" className="scroll-mt-4"><ProjectTimeline /></div>
         <div id="news" className="scroll-mt-4"><NewsUpdatesFeed /></div>
         <div id="metrics" className="scroll-mt-4"><SummaryMetrics partnersData={partnersData} stats={stats} sitesByProvince={sitesByProvince} /></div>
