@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, List, Users, ChevronDown, ChevronUp, Clock, Trophy, ExternalLink, RotateCcw, Presentation, Maximize2, Minimize2, Check, CheckCircle, FileText, Mail, Phone, BookOpen, Download, MessageSquare, ArrowUp, AlertTriangle, Printer, HelpCircle, Newspaper, GraduationCap, X, Activity, Building2, Smartphone, TrendingUp, Globe, Target, Zap, Navigation, BarChart3, ClipboardList, StickyNote } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Users, Clock, ExternalLink, Presentation, Maximize2, Minimize2, Check, CheckCircle, FileText, Mail, Phone, Download, AlertTriangle, GraduationCap, Activity, Building2, Globe, Zap, BarChart3, StickyNote, Lock, BookOpen, Target } from 'lucide-react';
 import L from 'leaflet';
+
+import { SectionCard, SkipLink, DataStamp, StatusBadge, SparkBars, fmtDate, fmtMonth } from './shared/ui.jsx';
+import { ALL_PARTNERS, LISTED_PARTNERS, METRICS, EXEMPTIONS, partnersMeta, networkStats, trainingSummary, exemptionSummary, daysUntil, metricsFor, hasMobile, hasFixed, PWLLE_TRAINING_SESSIONS } from './shared/data.js';
+import { NewsFeed, DocumentsSection, RelatedLinks, NetworkSummary, PwlleTrainingSessions, MapSection, ContactsSection } from './shared/sections.jsx';
+import { PdfCard, ProjectPublications, BackToTop, AnnouncementBanner, TableOfContents, ProjectCountdown, ProjectTimeline } from './shared/common.jsx';
+import siteNotesJson from './data/site_notes.json';
 
 // Fix for default marker icons in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -11,1458 +16,466 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Discourse Forum Configuration - UPDATE THESE VALUES AFTER SETUP
-const DISCOURSE_CONFIG = {
-  forumUrl: 'https://forum.uwo-drugchecking.ca',
-  embedUrl: 'https://forum.uwo-drugchecking.ca/embed/comments',
-  isConfigured: false
-};
+const ANNOUNCEMENT_CONFIG = { isActive: false, type: 'info', message: '', link: null };
 
-// Announcement Banner Configuration - UPDATE MESSAGE AS NEEDED
-const ANNOUNCEMENT_CONFIG = {
-  isActive: false,
-  type: 'info',
-  message: 'Welcome to the new Project Partner Dashboard! Explore the features and reach out if you have any questions.',
-  link: null,
-};
+// ─── Access gate ─────────────────────────────────────────────────────────────
+// The research dashboard carries internal notes and the full contact table, so
+// the whole page sits behind a password. The value comes from VITE_RESEARCH_PASSWORD
+// at build time (.env.local locally, a repository secret in CI). No fallback in
+// source: a build without the variable shows "not configured" and nothing else.
+// This is a deterrent for a shared internal link, not a substitute for per-user auth.
+const RESEARCH_PASSWORD = import.meta.env.VITE_RESEARCH_PASSWORD || '';
+const GATE_KEY = 'wudc-research-unlocked-v1';
 
-// News/Updates Feed Data - ADD NEW ITEMS AT THE TOP
-const NEWS_UPDATES = [
-  { date: '2026-03-31', title: '📊 Research Dashboard Rebuilt & Relaunched', description: 'The Research Personnel Dashboard has been completely rebuilt from the ground up to match the partner dashboard infrastructure. All sections are now fully functional including the Exemption 56 Tracker, PWLLE Training Sessions tracker, interactive map, and complete partner data table. Research-specific sections including the Performance Report and Site Notes have been added.' },
-  { date: '2026-03-31', title: '📈 FY2 Performance Report Now Available', description: 'The Fiscal Year 2 (April 2025 – March 2026) Performance Report is now available in the Performance Report section below. This report summarizes key project metrics, network growth, training outcomes, and exemption status across all 22 partner sites for the current fiscal year.' },
-  { date: '2026-03-17', title: '⚠️ Important Update: Ontario CTS Site Funding Announcement', description: 'On March 13, 2026, the Ontario Ministry of Health notified seven provincially-funded Consumption and Treatment Services (CTS) sites that provincial funding will terminate effective June 13, 2026. This announcement may affect certain Ontario project partner sites. Importantly, drug checking services are authorized under CDSA Section 56(1) — a separate federal pathway from supervised consumption. The Western University project team has prepared a detailed information document for affected partners outlining the regulatory landscape, your exemption status, and available options for continuing drug-checking services. Please contact Cameron directly with any questions.', link: { text: 'Download the Partner Information Document →', url: '/SCS-Closure-Information-Mar2026.pdf' } },
-  { date: '2026-03-12', title: '🚨 London Mass Overdose Event — Scatr Drug-Checking Plays Key Public Role', description: 'On March 11–12, 2026, London experienced a mass overdose emergency after a suspect drove through the downtown core distributing a toxic substance. Emergency services responded to 39 overdose-related calls in 24 hours and London hospitals activated a Code Orange Alert. Scatr drug-checking services at Carepoint (RHAC) played a direct public health role during the crisis. Lily Bialas, RHAC\'s Interim Director of Harm Reduction, was cited in CBC and CTV coverage highlighting the importance of on-site drug checking for providing timely, accurate information about drug supply trends — exactly what this network was built to do.', link: { text: 'CBC Coverage →', url: 'https://www.cbc.ca/news/canada/london/39-overdoses-free-drugs-london-ontario-9.7126514' } },
-  { date: '2026-03-18', title: '⚠️ Ontario CTS Funding Cuts — Drug-Checking Services Context', description: 'On March 13, 2026, the Ontario Ministry of Health notified seven provincially-funded Consumption and Treatment Services (CTS) sites that provincial funding will terminate effective June 13, 2026. Five of our Ontario partner sites may be affected. Critically, the Province confirmed in court proceedings that drug-checking services are NOT captured by the CCRA — they are authorized under a separate federal CDSA Section 56(1) pathway and may be able to continue independently of supervised consumption services. Please read the full information document and contact Cameron directly with any questions.', link: { text: 'Read the Full Information Document →', url: '/SCS-Closure-Information-Mar2026.pdf' } },
-  { date: '2026-02-08', title: '🎉 Paper Published in Harm Reduction Journal!', description: 'Our peer-reviewed manuscript has been published as open access in Harm Reduction Journal (Springer Nature). The paper — "Street drug monitoring with networked spectrometers powered by machine learning: a pilot study in Ontario, Canada" — reports on 7,752 samples analyzed across 10 Ontario sites over 14 months, comparing Raman spectroscopy against HPLC-MS and documenting participant consumption-related behavior changes. Congratulations to all co-authors and partner sites whose participation made this research possible!', link: { text: 'Read the Full Paper (Open Access) →', url: 'https://link.springer.com/article/10.1186/s12954-026-01403-3' } },
-  { date: '2025-12-13', title: 'New Resource: Standard Operating Procedures for Sample Preparation', description: 'We have published the official Standard Operating Procedures (SOP) for Sample Preparation document. This resource outlines the proper protocols for packaging and labelling samples for transport to the Western Laboratory. All partner sites are reminded to review and adhere to these SOPs to ensure sample integrity, regulatory compliance, and accurate analysis results.', link: { text: 'View the SOP Document', url: '/SOP-Sample-Preparation.pdf' } },
-  { date: '2025-12-12', title: 'Health Canada Releases Updated National Opioid & Stimulant Harms Data', description: 'The Public Health Agency of Canada has published updated national surveillance data showing a 17% decrease in opioid toxicity deaths in 2024 compared to 2023. Key findings: deaths dropped from 8,623 (2023) to 7,146 (2024), averaging 20 deaths per day (down from 22). Hospitalizations also fell 15%, alongside similar decreases in EMS responses and ED visits. BC, Alberta, Saskatchewan, Ontario, New Brunswick, and Yukon all reported decreases, with some jurisdictions attributing the decline partly to lower fentanyl concentrations in the drug supply.', link: { text: 'View the Full Report', url: 'https://health-infobase.canada.ca/substance-related-harms/opioids-stimulants/' } },
-  { date: '2025-12-11', title: 'Project Partner Dashboard Launched', description: 'The new interactive dashboard is now live, providing partners with centralized access to project information, documents, and contact details.' },
-  { date: '2025-12-01', title: '22 Partner Sites Now Active', description: 'We have successfully onboarded 22 partner sites across 7 provinces, 20 cities, with 24 spectrometers deployed.' },
-  { date: '2025-09-15', title: 'Manuscript Submitted to Harm Reduction Journal', description: 'Our peer-reviewed paper on street drug monitoring using Raman spectroscopy was submitted for review — now published February 8, 2026! See the News & Updates section above for the link.' },
-];
-
-const FAQ_DATA = [
-  { question: 'How do I update my site\'s contact information on the dashboard?', answer: 'Contact the Project Manager with your updated information and we will update the dashboard accordingly.' },
-  { question: 'Can I share this dashboard with others at my organization?', answer: 'Yes, you may share access with colleagues directly involved in the drug-checking program at your site. However, please do not share access with individuals outside of the project network.' },
-  { question: 'What is the difference between Mobile and Non-Mobile exemptions?', answer: 'A Non-Mobile exemption allows drug-checking at a fixed location only. A Mobile exemption allows you to conduct drug-checking at various locations within your approved geographic area, such as outreach services or pop-up sites.' },
-];
-
-const TRAINING_STATUS = {
-  1: { completed: true, date: '2025-06-15' },
-  2: { completed: true, date: '2025-07-20' },
-  3: { completed: true, date: '2025-08-10' },
-  4: { completed: false, date: null },
-  5: { completed: true, date: '2025-09-05' },
-  6: { completed: false, date: null },
-  7: { completed: true, date: '2025-08-25' },
-  8: { completed: true, date: '2025-09-12' },
-  9: { completed: false, date: null },
-  10: { completed: true, date: '2025-10-01' },
-  11: { completed: false, date: null },
-  12: { completed: true, date: '2025-10-15' },
-  13: { completed: false, date: null },
-  14: { completed: false, date: null },
-  15: { completed: false, date: null },
-  16: { completed: true, date: '2025-11-01' },
-  17: { completed: false, date: null },
-  18: { completed: false, date: null },
-  19: { completed: true, date: '2025-11-10' },
-  20: { completed: false, date: null },
-  21: { completed: false, date: null },
-  22: { completed: false, date: null },
-};
-
-// PWLLE Drug-Checking Peer Training Sessions data
-const PWLLE_TRAINING_SESSIONS = [
-  { id: 1, site: "Sanguen Health Centre", location: "Kitchener, ON", sessionNum: 1, scheduledDate: "2025-01-20", purpose: "Focus Group", completed: "Complete", attendants: 10, newAttendants: 10, notes: "2025-01-20 Sanguen Focus Group Session One Notes" },
-  { id: 2, site: "Grey County", location: "Owen Sound, ON", sessionNum: 1, scheduledDate: "2025-02-03", purpose: "Focus Group", completed: "Complete", attendants: 10, newAttendants: 10, notes: "2025-02-04 Grey Bruce Focus Group Session One Notes" },
-  { id: 3, site: "Regional HIV/AIDS Connection", location: "London, ON", sessionNum: 1, scheduledDate: "2025-02-18", purpose: "Focus Group", completed: "Complete", attendants: 20, newAttendants: 20, notes: "2025-02-19 London Focus Group Session One Notes" },
-  { id: 4, site: "Sanguen Health Centre", location: "Kitchener, ON", sessionNum: 2, scheduledDate: "2025-02-14", purpose: "Feedback on Materials", completed: "Complete", attendants: 10, newAttendants: 9, notes: "2025-02-14 Sanguen Focus Group Session Two Notes" },
-  { id: 5, site: "Grey County", location: "Owen Sound, ON", sessionNum: 2, scheduledDate: "2025-03-28", purpose: "DCP Certification", completed: "Complete", attendants: 14, newAttendants: 4, notes: "DCP Pre- and Post-Surveys" },
-  { id: 6, site: "Regional HIV/AIDS Connection", location: "London, ON", sessionNum: 2, scheduledDate: "2025-03-06", purpose: "Feedback on Materials", completed: "Complete", attendants: 5, newAttendants: 0, notes: "2025-03-06 London Feedback Session Note" },
-  { id: 7, site: "Sanguen Health Centre", location: "Kitchener, ON", sessionNum: 3, scheduledDate: "2025-03-17", purpose: "DCP Certification", completed: "Complete", attendants: 10, newAttendants: 3, notes: "DCP Pre- and Post-Surveys" },
-  { id: 8, site: "Grey County", location: "Owen Sound, ON", sessionNum: 3, scheduledDate: "2025-05-30", purpose: "DCP Certification", completed: "Complete", attendants: 12, newAttendants: 12, notes: "DCP Pre- and Post-Surveys" },
-  { id: 9, site: "Regional HIV/AIDS Connection", location: "London, ON", sessionNum: 3, scheduledDate: "2025-04-15", purpose: "DCP Certification", completed: "Complete", attendants: 20, newAttendants: 6, notes: "DCP Pre- and Post-Surveys" },
-  { id: 10, site: "Avenue B Harm Reduction Inc.", location: "Saint John, NB", sessionNum: 1, scheduledDate: "2026-03-27", purpose: "DCP Certification", completed: "Complete", attendants: 17, newAttendants: 17, notes: "Awaiting receipt of LOICs and Surveys for final signature and input" },
-];
-
-// Exemption 56 Tracker Data - RESEARCH DASHBOARD SPECIFIC
-// To add individual site exemption PDFs: save them in /public/exemptions/ with the filename matching the 'pdf' field below
-const EXEMPTION_DATA = [
-  { name: "Sandy Hill Community Health Centre", city: "Ottawa", prov: "ON", expDate: "2025-11-29", type: "Fixed", file: "SANDYHILL CHC OTTAWA_ONTARIO_Fixed_Exemption_25-103345-595_Valid Through_2025-11-30", pdf: "/exemptions/sandyhill-chc-fixed-25-103345.pdf" },
-  { name: "Prairie Harm Reduction", city: "Saskatoon", prov: "SK", expDate: "2026-03-20", type: "Non-Mobile", file: "PRAIREHARMREDUCTION_SASKATCHEWAN_Non-MOBILE_Valid Through_2026-03-31", pdf: "/exemptions/prairie-hr-non-mobile.pdf", alert: "⚠️ Funding temporarily suspended by Health Canada — services on hold" },
-  { name: "Avenue B Harm Reduction Inc.", city: "Saint John", prov: "NB", expDate: "2026-03-30", type: "Fixed (Provincial)", file: "AVENUE B_NEW BRUNSWICK_Fixed_Exemption_PROVINCIAL_Valid Through_2026-03-31", pdf: "/exemptions/avenue-b-fixed-provincial.pdf" },
-  { name: "Western University", city: "London", prov: "ON", expDate: "2026-05-30", type: "Fixed", file: "WESTERN UNIVERSITY_ONTARIO_Fixed_Exemption_23-103191-197_Valid Through_2026-05-31", pdf: "/exemptions/western-fixed-23-103191.pdf" },
-  { name: "County of Grey", city: "Owen Sound", prov: "ON", expDate: "2026-07-30", type: "Fixed + Mobile", file: "GREY COUNTY_ONTARIO_Mobile_Exemption_25-103969-673 AND Fixed_Exemption_25-103968-537_Valid Through_2026-07-31", pdf: "/exemptions/grey-county-fixed-mobile.pdf" },
-  { name: "Lower Mainland Purpose Society", city: "New Westminster", prov: "BC", expDate: "2026-09-29", type: "Fixed (Provincial)", file: "PURPOSE SOCIETY_BC_Fixed_Exemption_Provincial_Valid Through_2026-09-30", pdf: "/exemptions/purpose-society-fixed-provincial.pdf" },
-  { name: "Positive Living Niagara", city: "St. Catharines", prov: "ON", expDate: "2026-09-29", type: "Fixed", file: "POSITIVE LIVING NIAGARA_ONTARIO_Fixed_Exemption_23-107999-566_Valid Through 2026-09-30", pdf: "/exemptions/pln-fixed-23-107999.pdf" },
-  { name: "Ensemble Moncton", city: "Moncton", prov: "NB", expDate: "2026-09-29", type: "Fixed (Provincial) + Mobile Pending", file: "ENSEMBLE_NB_Fixed_Exemption_Provincial_Valid Through_2026-09-30 AND MOBILE Pending", pdf: "/exemptions/ensemble-fixed-provincial.pdf" },
-  { name: "Sanguen Health Centre", city: "Kitchener", prov: "ON", expDate: "2026-10-30", type: "Fixed + Mobile", file: "SANGUEN CHC_ONTARIO_Mobile AND Fixed_Exemption_Valid Through_2026-10-31", pdf: "/exemptions/sanguen-fixed-mobile.pdf" },
-  { name: "Regional HIV/AIDS Connection (RHAC)", city: "London", prov: "ON", expDate: "2026-11-29", type: "Fixed", file: "RHAC LONDON_ONTARIO_Fixed_Exemption_24-108536-846_Valid Through_2026-11-30", pdf: "/exemptions/rhac-fixed-24-108536.pdf" },
-  { name: "Travailderue", city: "Chicoutimi", prov: "QC", expDate: "2027-06-29", type: "Fixed (Federal)", file: "TRAVAILDERUE_QUEBEC_Fixed_Exemption_FEDERAL_Valid Through_2027-06-30", pdf: "/exemptions/travailderue-fixed-federal.pdf" },
-  { name: "Ottawa Inner City Health", city: "Ottawa", prov: "ON", expDate: "2027-09-29", type: "Fixed", file: "INNER CITY HEALTH OTTAWA_ONTARIO_Fixed_Exemption_24-107784-124_Valid Through_2027-09-30", pdf: "/exemptions/oich-fixed-24-107784.pdf" },
-];
-
-const EXEMPTION_AWAITING = [
-  { name: "Guelph Community Health Centre", status: "Awaiting Copy" },
-  { name: "Moyo Health", status: "Awaiting HC Approval" },
-  { name: "Hamilton Urban Core Community Health Centre", status: "Awaiting Submission" },
-  { name: "Cochrane District Paramedic Service", status: "Awaiting HC Approval" },
-  { name: "Renfrew Paramedic Services", status: "Awaiting HC Approval" },
-  { name: "Peterborough AIDS Resource Network", status: "Awaiting Submission" },
-  { name: "NHC Society", status: "Awaiting HC Approval" },
-  { name: "Breakaway", status: "Awaiting HC Approval" },
-  { name: "AIDS New Brunswick", status: "Awaiting HC/Prov Approval" },
-  { name: "Boyle Street Service Society", status: "Awaiting HC/Prov Approval" },
-];
-
-const getExemptionStatus = (expDateStr) => {
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const expDate = new Date(expDateStr);
-  const diffMs = expDate - today;
-  const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (daysRemaining < 0) return { label: `${Math.abs(daysRemaining)}d overdue`, color: 'red', bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-800' };
-  if (daysRemaining < 30) return { label: `${daysRemaining}d`, color: 'orange', bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-800' };
-  if (daysRemaining < 90) return { label: `${daysRemaining}d`, color: 'yellow', bg: 'bg-yellow-100', border: 'border-yellow-600', text: 'text-yellow-800' };
-  if (daysRemaining < 180) return { label: `${daysRemaining}d`, color: 'green', bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800' };
-  return { label: `${daysRemaining}d`, color: 'emerald', bg: 'bg-emerald-100', border: 'border-emerald-600', text: 'text-emerald-800' };
-};
-
-const ExemptionTracker = () => (
-  <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-    <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
-      <h2 className="flex items-center gap-2 font-bold text-2xl"><AlertTriangle size={28} />Exemption 56 Expiration Tracker</h2>
-      <p className="text-purple-200 text-sm mt-1">Real-time countdown to exemption renewal deadlines</p>
-    </div>
-    <div className="p-6 space-y-3">
-      <div className="flex flex-wrap gap-2 mb-4">
-        <a href="/Exemption-56-Template.pdf" target="_blank" className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"><FileText size={16} />View Redacted Template</a>
-        <a href="/Exemption-56-Blank.pdf" target="_blank" className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"><Download size={16} />Blank Application Form</a>
-      </div>
-      {EXEMPTION_DATA.map((e, i) => {
-        const s = getExemptionStatus(e.expDate);
-        return (
-          <div key={i} className={`${s.bg} border-l-4 ${s.border} rounded-lg p-4 flex justify-between items-start`}>
-            <div className="flex-1 mr-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-gray-900">{e.name}</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/80 text-gray-600 border border-gray-300">{e.type}</span>
-              </div>
-              <div className="text-sm text-gray-600">{e.city}, {e.prov}</div>
-              {e.alert && <div className="text-xs font-bold text-red-700 bg-red-50 border border-red-300 rounded px-2 py-1 mt-1">{e.alert}</div>}
-              <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                <FileText size={12} />
-                <span className="truncate">{e.file}</span>
-                <a href={e.pdf} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-800 font-medium ml-1 flex-shrink-0" title="View exemption document PDF"><Download size={12} />PDF</a>
-              </div>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="text-sm text-gray-600">Expires: {formatDateDisplay(e.expDate)}</div>
-              <div className={`font-bold ${s.text}`}>{s.label}</div>
-            </div>
-          </div>
-        );
-      })}
-      <h3 className="font-bold text-lg text-gray-900 mt-8 mb-3">Awaiting Approval / Submission</h3>
-      {EXEMPTION_AWAITING.map((e, i) => (
-        <div key={i} className="bg-gray-100 rounded-lg p-3 flex justify-between items-center">
-          <span className="font-medium text-gray-900">{e.name}</span>
-          <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">{e.status}</span>
-        </div>
-      ))}
-      <div className="mt-6 bg-white border border-gray-200 rounded-xl p-4">
-        <h4 className="font-semibold text-gray-900 mb-3">Legend</h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-red-100 border-2 border-red-500 rounded"></div>Expired</div>
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-orange-100 border-2 border-orange-500 rounded"></div>&lt;30 days</div>
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-yellow-100 border-2 border-yellow-600 rounded"></div>30-90 days</div>
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-100 border-2 border-green-500 rounded"></div>90-180 days</div>
-          <div className="flex items-center gap-2"><div className="w-4 h-4 bg-emerald-100 border-2 border-emerald-600 rounded"></div>&gt;180 days</div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// Performance Report Component - Research Dashboard Specific
-const PerformanceReport = () => {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const metrics = [
-    { label: 'Total Samples Analyzed (Network)', value: '12,400+', icon: <Activity size={20} className="text-purple-600" />, desc: 'Cumulative samples processed across all partner sites since project inception' },
-    { label: 'Active Partner Sites', value: '22', icon: <Building2 size={20} className="text-green-600" />, desc: 'Harm reduction and community health sites with deployed spectrometers' },
-    { label: 'Spectrometers Deployed', value: '24 / 28', icon: <Zap size={20} className="text-blue-600" />, desc: '24 deployed of 28 total target (86% deployment rate)' },
-    { label: 'Provinces Covered', value: '7', icon: <Globe size={20} className="text-indigo-600" />, desc: 'ON, BC, SK, QC, NB, NS, AB' },
-    { label: 'PWLLE Trained (Unique)', value: '91', icon: <GraduationCap size={20} className="text-orange-600" />, desc: '91 unique People with Lived/Living Experience trained across 10 sessions at 4 sites' },
-    { label: 'Total Training Attendants', value: '128', icon: <Users size={20} className="text-teal-600" />, desc: 'Total training session attendance including repeat participants' },
-    { label: 'Approved Exemptions', value: '13', icon: <CheckCircle size={20} className="text-green-600" />, desc: '13 of 22 sites have active Section 56(1) exemptions' },
-    { label: 'Peer-Reviewed Publications', value: '1', icon: <BookOpen size={20} className="text-purple-600" />, desc: 'Published in Harm Reduction Journal (Springer Nature), Feb 2026' },
-  ];
-
-  const fyTimeline = [
-    { fy: 'FY1', period: 'Apr 2024 – Mar 2025', highlights: ['Phase 2 launched with national expansion mandate', '11 Year 1 partner sites onboarded', 'First PWLLE training sessions conducted (Focus Groups)', 'DCP Certification program piloted at 3 Ontario sites', 'Manuscript submitted to Harm Reduction Journal'], status: 'complete' },
-    { fy: 'FY2', period: 'Apr 2025 – Mar 2026', highlights: ['11 additional Year 2 partner sites onboarded (total: 22)', '24 spectrometers deployed across 7 provinces', '9 PWLLE training sessions completed, 74 unique PWLLE trained', 'Paper published in Harm Reduction Journal (Feb 8, 2026)', 'Ontario CTS funding announcement — 5 partner sites potentially affected', 'Exemption 56 tracking and renewal management operationalized'], status: 'current' },
-    { fy: 'FY3', period: 'Apr 2026 – Mar 2027', highlights: ['Deploy 2 additional spectrometers (target: 26)', 'Expand PWLLE DCP Training to Year 2 partner sites', 'Continue exemption renewal support for all sites', 'East Coast training sessions planned'], status: 'upcoming' },
-    { fy: 'FY4', period: 'Apr 2027 – Mar 2028', highlights: ['Deploy final 2 spectrometers (target: 28)', 'Complete all PWLLE training across network', 'Final project reporting and evaluation', 'Sustainability planning for post-project operations'], status: 'upcoming' },
-  ];
-
+const AccessGate = ({ children }) => {
+  const [unlocked, setUnlocked] = useState(() => { try { return sessionStorage.getItem(GATE_KEY) === '1'; } catch (e) { return false; } });
+  const [pw, setPw] = useState('');
+  const [err, setErr] = useState('');
+  const ref = useRef(null);
+  if (unlocked && RESEARCH_PASSWORD) return children;
+  const submit = (e) => {
+    e.preventDefault();
+    if (RESEARCH_PASSWORD && pw === RESEARCH_PASSWORD) {
+      try { sessionStorage.setItem(GATE_KEY, '1'); } catch (err2) { /* ignore */ }
+      setUnlocked(true); setErr('');
+    } else {
+      setErr(RESEARCH_PASSWORD ? 'Incorrect password.' : 'Access is not configured for this build (VITE_RESEARCH_PASSWORD is not set).');
+      setPw(''); setTimeout(() => ref.current && ref.current.focus(), 0);
+    }
+  };
   return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-        <div>
-          <h2 className="flex items-center gap-2 font-bold text-2xl"><BarChart3 size={28} />Performance Report</h2>
-          <p className="text-purple-200 text-sm mt-1">Fiscal Year 2 Summary (April 2025 – March 2026)</p>
+    <main id="main" className="min-h-screen bg-gradient-to-br from-purple-50 to-white flex items-center justify-center p-6">
+      <form onSubmit={submit} className="w-full max-w-md bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-5">
+          <h1 className="flex items-center gap-2 font-bold text-xl"><Lock size={22} aria-hidden="true" />Research Personnel Dashboard</h1>
+          <p className="text-purple-200 text-sm mt-1">Western University Drug-Checking Network · internal</p>
         </div>
-        <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
-          <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
-          {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-700">This dashboard contains partner contact details, exemption records and internal notes. Enter the research-team password to continue.</p>
+          <label className="block text-sm font-semibold text-purple-900">Password
+            <input ref={ref} type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" className="mt-1 w-full border-2 border-purple-200 rounded-lg px-3 py-2 focus:border-purple-600 focus:outline-none" />
+          </label>
+          {err && <p className="text-sm text-red-700 font-medium" role="alert">{err}</p>}
+          <button type="submit" className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-2.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400">Open dashboard</button>
+          <p className="text-xs text-gray-500">Access: Cameron Brown, Project Manager · <a className="underline" href="mailto:cbrown58@uwo.ca">cbrown58@uwo.ca</a></p>
+        </div>
+      </form>
+    </main>
+  );
+};
+
+// ─── Exemption tracker ───────────────────────────────────────────────────────
+const statusTone = (e) => {
+  if (e.status === 'closed') return { bg: 'bg-gray-100', border: 'border-gray-400', text: 'text-gray-700', label: 'Closed' };
+  if (e.status === 'pending') return { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-700', label: 'Pending' };
+  if (e.status === 'to-confirm') return { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-800', label: 'To confirm' };
+  if (e.status.startsWith('expired')) return { bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-800', label: e.status === 'expired-renewal-submitted' ? 'Expired · renewal submitted' : 'Expired' };
+  const d = daysUntil(e.validTo);
+  if (d === null) return { bg: 'bg-emerald-50', border: 'border-emerald-500', text: 'text-emerald-800', label: 'Active' };
+  if (d < 0) return { bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-800', label: `${Math.abs(d)} d overdue` };
+  if (d < 30) return { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-800', label: `${d} d left` };
+  if (d < 90) return { bg: 'bg-yellow-100', border: 'border-yellow-600', text: 'text-yellow-800', label: `${d} d left` };
+  if (d < 180) return { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800', label: `${d} d left` };
+  return { bg: 'bg-emerald-100', border: 'border-emerald-600', text: 'text-emerald-800', label: `${d} d left` };
+};
+
+const ExemptionRow = ({ e }) => {
+  const t = statusTone(e);
+  return (
+    <li className={`${t.bg} border-l-4 ${t.border} rounded-lg p-4 flex justify-between items-start gap-4`}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-bold text-gray-900">{e.site}</span>
+          {e.type && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/80 text-gray-700 border border-gray-300">{e.type}</span>}
+          {e.number && <span className="text-xs font-mono text-gray-600">{e.number}</span>}
+        </div>
+        {e.note && <div className="text-sm text-gray-700 mt-1">{e.note}</div>}
+        {e.file && <div className="text-xs text-gray-500 mt-1 flex items-center gap-1 min-w-0"><FileText size={12} aria-hidden="true" /><span className="truncate" title={e.file}>{e.file}</span></div>}
+      </div>
+      <div className="text-right flex-shrink-0">
+        {e.validTo && <div className="text-sm text-gray-600">Valid to {fmtDate(e.validTo)}</div>}
+        <div className={`font-bold ${t.text}`}>{t.label}</div>
+      </div>
+    </li>
+  );
+};
+
+const ExemptionTracker = () => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const today = new Date().toISOString().slice(0, 10);
+  const dated = EXEMPTIONS.filter((e) => e.validTo && !['closed', 'pending', 'to-confirm'].includes(e.status)).sort((a, b) => a.validTo.localeCompare(b.validTo));
+  const expired = dated.filter((e) => e.validTo < today || e.status.startsWith('expired'));
+  const active = dated.filter((e) => !(e.validTo < today || e.status.startsWith('expired')));
+  const toConfirm = EXEMPTIONS.filter((e) => e.status === 'to-confirm');
+  const pending = EXEMPTIONS.filter((e) => e.status === 'pending');
+  const closed = EXEMPTIONS.filter((e) => e.status === 'closed');
+  const soon = active.filter((e) => daysUntil(e.validTo) <= 90);
+  const ics = () => {
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Western University Drug-Checking Network//Exemption renewals//EN'];
+    active.forEach((e) => {
+      const d = e.validTo.replace(/-/g, '');
+      const reminder = new Date(e.validTo); reminder.setDate(reminder.getDate() - 90);
+      const r = reminder.toISOString().slice(0, 10).replace(/-/g, '');
+      lines.push('BEGIN:VEVENT', `UID:${e.number || e.site}-${d}@uwo-drugchecking.ca`, `DTSTAMP:${today.replace(/-/g, '')}T000000Z`, `DTSTART;VALUE=DATE:${r}`, `SUMMARY:Exemption renewal (90 days): ${e.site} — ${e.type}`, `DESCRIPTION:Expires ${e.validTo}${e.number ? ' · ' + e.number : ''}`, 'END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'exemption-renewal-reminders.ics'; a.click(); URL.revokeObjectURL(a.href);
+  };
+  return (
+    <SectionCard id="exemptions" icon={AlertTriangle} title="Exemption 56 Expiration Tracker" subtitle={`${active.length} active · ${soon.length} expiring within 90 days · ${expired.length} expired · ${pending.length + toConfirm.length} pending or to confirm · letters updated ${fmtDate(partnersMeta.lastUpdated)}`} expanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)}
+      actions={isExpanded && <button type="button" onClick={ics} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300"><Download size={16} aria-hidden="true" />Renewal reminders (.ics)</button>}>
+      <div className="p-6 space-y-6 bg-gradient-to-br from-white to-purple-50">
+        <div className="flex flex-wrap gap-2">
+          <a href="/Exemption-56-Template.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium"><FileText size={16} aria-hidden="true" />Redacted approved template</a>
+          <a href="/Exemption-56-Blank.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg text-sm font-medium"><Download size={16} aria-hidden="true" />Blank application form</a>
+          <span className="text-xs text-gray-500 self-center">Decision letters are filed in HealthCan-UWO/Legal &amp; Regulatory (file names shown on each row).</span>
+        </div>
+        {soon.length > 0 && <div><h3 className="font-bold text-lg text-orange-900 mb-2">Renewals due within 90 days</h3><ul className="space-y-2">{soon.map((e, i) => <ExemptionRow key={`s${i}`} e={e} />)}</ul></div>}
+        <div><h3 className="font-bold text-lg text-gray-900 mb-2">Active, by expiry date</h3><ul className="space-y-2">{active.filter((e) => !soon.includes(e)).map((e, i) => <ExemptionRow key={`a${i}`} e={e} />)}</ul></div>
+        <div><h3 className="font-bold text-lg text-gray-900 mb-2">Expired</h3><ul className="space-y-2">{expired.map((e, i) => <ExemptionRow key={`e${i}`} e={e} />)}</ul></div>
+        <div><h3 className="font-bold text-lg text-gray-900 mb-2">To confirm (letter not on file or status unknown)</h3><ul className="space-y-2">{toConfirm.map((e, i) => <ExemptionRow key={`c${i}`} e={e} />)}</ul></div>
+        <div><h3 className="font-bold text-lg text-gray-900 mb-2">Pending application or decision</h3><ul className="space-y-2">{pending.map((e, i) => <ExemptionRow key={`p${i}`} e={e} />)}</ul></div>
+        {closed.length > 0 && <div><h3 className="font-bold text-lg text-gray-900 mb-2">Closed sites</h3><ul className="space-y-2">{closed.map((e, i) => <ExemptionRow key={`x${i}`} e={e} />)}</ul></div>}
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <h4 className="font-semibold text-gray-900 mb-3">Legend</h4>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
+            <div className="flex items-center gap-2"><span aria-hidden="true" className="w-4 h-4 bg-red-100 border-2 border-red-500 rounded inline-block"></span>Expired</div>
+            <div className="flex items-center gap-2"><span aria-hidden="true" className="w-4 h-4 bg-orange-100 border-2 border-orange-500 rounded inline-block"></span>&lt;30 days</div>
+            <div className="flex items-center gap-2"><span aria-hidden="true" className="w-4 h-4 bg-yellow-100 border-2 border-yellow-600 rounded inline-block"></span>30–90 days</div>
+            <div className="flex items-center gap-2"><span aria-hidden="true" className="w-4 h-4 bg-green-100 border-2 border-green-500 rounded inline-block"></span>90–180 days</div>
+            <div className="flex items-center gap-2"><span aria-hidden="true" className="w-4 h-4 bg-emerald-100 border-2 border-emerald-600 rounded inline-block"></span>&gt;180 days</div>
+            <div className="flex items-center gap-2"><span aria-hidden="true" className="w-4 h-4 bg-blue-50 border-2 border-blue-400 rounded inline-block"></span>To confirm</div>
+          </div>
         </div>
       </div>
-      {isExpanded && (
-        <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-6">
-          <div>
-            <h3 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Target size={18} />Key Performance Indicators</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {metrics.map((m, i) => (
-                <div key={i} className="bg-white rounded-xl border-2 border-purple-200 p-4 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center gap-3 mb-2">{m.icon}<span className="text-sm font-semibold text-gray-700">{m.label}</span></div>
-                  <div className="text-3xl font-black text-purple-900 mb-1">{m.value}</div>
-                  <div className="text-xs text-gray-500">{m.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Clock size={18} />Fiscal Year Progress</h3>
-            <div className="space-y-4">
-              {fyTimeline.map((fy, i) => (
-                <div key={i} className={`rounded-xl border-2 p-4 ${fy.status === 'current' ? 'border-purple-400 bg-purple-50' : fy.status === 'complete' ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${fy.status === 'current' ? 'bg-purple-700 text-white' : fy.status === 'complete' ? 'bg-green-600 text-white' : 'bg-gray-400 text-white'}`}>{fy.status === 'current' ? 'CURRENT' : fy.status === 'complete' ? 'COMPLETE' : 'UPCOMING'}</span>
-                    <span className="font-bold text-gray-900">{fy.fy}</span>
-                    <span className="text-sm text-gray-600">{fy.period}</span>
-                  </div>
-                  <ul className="space-y-1 ml-4">
-                    {fy.highlights.map((h, j) => (
-                      <li key={j} className="text-sm text-gray-700 flex items-start gap-2">
-                        <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${fy.status === 'current' ? 'bg-purple-500' : fy.status === 'complete' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                        {h}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
-            <h3 className="font-bold text-yellow-900 mb-2 flex items-center gap-2"><AlertTriangle size={18} className="text-yellow-600" />Key Risks & Considerations</h3>
-            <ul className="space-y-2 text-sm text-yellow-800">
-              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>Ontario CTS funding termination (June 13, 2026) may affect 5 Ontario partner sites — drug-checking services operate under separate federal CDSA Section 56(1) authority and may continue independently</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>2 exemptions currently expired or expiring within 30 days — renewal follow-up required for Sandy Hill CHC and Prairie Harm Reduction</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>9 sites still awaiting Health Canada exemption approval — processing timelines remain variable</li>
-              <li className="flex items-start gap-2"><span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0 bg-yellow-500"></span>PWLLE training expansion to Year 2 sites needs to be planned and scheduled for FY3</li>
-            </ul>
-          </div>
-        </div>
-      )}
+    </SectionCard>
+  );
+};
+
+// ─── Utilization (per site, last 12 months) ──────────────────────────────────
+const TARGETS = { fixed: [60, 75, 100], mobile: [25, 40, 55] };
+const UtilizationTable = () => {
+  const rows = useMemo(() => ALL_PARTNERS.filter((p) => p.status === 'active' && !p.isLead && metricsFor(p)).map((p) => {
+    const m = metricsFor(p);
+    const months = m.monthly || [];
+    const activeMonths = months.filter((x) => x.poc > 0).length;
+    const avg = activeMonths ? Math.round((months.reduce((n, x) => n + x.poc, 0) / activeMonths) * 10) / 10 : 0;
+    const kind = hasFixed(p) ? 'fixed' : 'mobile';
+    return { p, m, months, activeMonths, avg, kind, target: TARGETS[kind] };
+  }).sort((a, b) => b.m.pocLast12Months - a.m.pocLast12Months), []);
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <caption className="sr-only">Point-of-care scans per partner site over the last 12 months</caption>
+        <thead><tr className="bg-gradient-to-r from-purple-600 to-purple-800 text-white">{['Site', 'Type', 'Last 12 months', 'Monthly', 'Avg / active month', 'Target (min · goal · high)', 'FY to date', 'All time', 'Last scan'].map((h) => <th key={h} scope="col" className="border border-purple-300 p-2 text-left whitespace-nowrap">{h}</th>)}</tr></thead>
+        <tbody>
+          {rows.map(({ p, m, months, avg, kind, target }, idx) => {
+            const tone = avg >= target[0] ? 'text-emerald-700' : avg > 0 ? 'text-amber-700' : 'text-gray-400';
+            return (
+              <tr key={p.id} className={idx % 2 === 0 ? 'bg-purple-50' : 'bg-white'}>
+                <td className="border border-purple-200 p-2 font-semibold text-purple-900">{p.shortName || p.nameOrganization}</td>
+                <td className="border border-purple-200 p-2 capitalize">{kind}</td>
+                <td className="border border-purple-200 p-2 font-bold text-right">{m.pocLast12Months.toLocaleString()}</td>
+                <td className="border border-purple-200 p-2"><SparkBars series={months.map((x) => ({ key: x.month, label: fmtMonth(x.month), value: x.poc }))} label={`${p.shortName || p.nameOrganization}: scans per month, last 12 months`} /></td>
+                <td className={`border border-purple-200 p-2 text-right font-bold ${tone}`}>{avg}</td>
+                <td className="border border-purple-200 p-2 text-gray-600 whitespace-nowrap">{target.join(' · ')}</td>
+                <td className="border border-purple-200 p-2 text-right">{m.pocFiscalYearToDate.toLocaleString()}</td>
+                <td className="border border-purple-200 p-2 text-right">{m.pocAllTime.toLocaleString()}</td>
+                <td className="border border-purple-200 p-2 whitespace-nowrap">{fmtDate(m.lastScan)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="text-xs text-gray-500 mt-2">Average is the site's total over the last 12 months divided by months with at least one scan; the current month is partial. Targets are the 2026 utilization thresholds (fixed 60 / 75 / 100, mobile 25 / 40 / 55 scans per month); the site agreement sets 60–80 scans per month. Scans are credited by operator login, not device.</p>
     </div>
   );
 };
 
-// Site Notes Component - Research Dashboard Specific
-const SITE_NOTES = [
-  { site: "Sandy Hill Community Health Centre", city: "Ottawa, ON", notes: ["Exemption expired Nov 29, 2025 — renewal follow-up in progress", "Original Phase 1 site — active since May 2023", "Contact: Dean Dewar / Fiona Miller"], priority: "high" },
-  { site: "Prairie Harm Reduction", city: "Saskatoon, SK", notes: ["⚠️ FUNDING SUSPENDED — Health Canada has temporarily suspended funding; services are currently on hold", "Exemption expired Mar 20, 2026 — renewal submitted", "Year 2 partner — Scatr training completed Aug 2025", "Only Saskatchewan site in the network"], priority: "high" },
-  { site: "Avenue B Harm Reduction Inc.", city: "Saint John, NB", notes: ["Exemption expires Mar 30, 2026 — provincial pathway", "Mobile exemption also submitted and pending", "PWLLE DCP Training Session 1 completed Mar 27, 2026 — 17 participants (all new unique)", "Awaiting receipt of LOICs and Surveys for final signature and input"], priority: "high" },
-  { site: "Regional HIV/AIDS Connection (RHAC)", city: "London, ON", notes: ["Key London site — Carepoint supervised consumption service", "Played direct public health role during Mar 2026 mass overdose event", "3 PWLLE training sessions completed (20 unique PWLLE trained)", "Both Scatr training rounds completed (May 2023, Apr 2024)"], priority: "medium" },
-  { site: "County of Grey", city: "Owen Sound, ON", notes: ["Both Fixed and Mobile exemptions active (expire Jul 2026)", "3 PWLLE training sessions completed (22 unique PWLLE trained)", "Rural/remote service area — Grey Bruce region"], priority: "medium" },
-  { site: "Sanguen Health Centre", city: "Kitchener, ON", notes: ["Both Fixed and Mobile exemptions active (expire Oct 2026)", "3 PWLLE training sessions completed (22 unique PWLLE trained)", "Original Phase 1 site — strong engagement throughout"], priority: "medium" },
-  { site: "Ensemble Moncton", city: "Moncton, NB", notes: ["Fixed exemption active (provincial), Mobile submitted and pending", "Year 2 partner — Scatr training scheduled Jul 2025", "New Brunswick East Coast expansion site"], priority: "low" },
-  { site: "Boyle Street Service Society", city: "Edmonton, AB", notes: ["Only Alberta site in the network", "Exemption submitted — awaiting HC/Provincial approval", "Serial number TBD — device allocation pending exemption"], priority: "low" },
-];
+// ─── Performance report (computed) ───────────────────────────────────────────
+const FY_FACTS = {
+  'FY2024-25': { period: 'Apr 2024 – Mar 2025', facts: ['Phase 2 agreement effective 27 Jun 2024 (signed Nov 2024); Amending Agreement #1 signed 11 Mar 2025', 'Year 1 partner sites onboarded', 'Drug-Checking Peer program: focus groups and first DCP certifications at Sanguen, Grey County and RHAC (Jan–Mar 2025)', 'Ontario Community Care and Recovery Act closures affect Sanguen, Guelph CHC and Hamilton Urban Core (Mar 2025)'] },
+  'FY2025-26': { period: 'Apr 2025 – Mar 2026', facts: ['Year 2 partner sites onboarded; 22 sites with 24 devices by Dec 2025', 'Paper published in Harm Reduction Journal, 8 Feb 2026', 'Phase 2 DCP certification begins (Avenue B 27 Mar 2026)', 'Ontario CTS funding change announced 13 Mar 2026; Prairie Harm Reduction exemption suspended 30 Mar 2026'] },
+  'FY2026-27': { period: 'Apr 2026 – Mar 2027', facts: ['LOFT Community Services joins (agreement 12 Aug 2026); CMHA Huron Perth and BRAS Outaouais agreements executed, installs Dec 2026', 'Western mass spectrometry paused from Jul 2026 pending recruitment; Drug Analysis Service referral pathway', 'HSREB amendment approved 13 Oct 2026 (Protocol V5, device-use LOIC V3)', 'Windsor-Essex County Health Unit onboarding; Casey House prospective'] },
+  'FY2027-28': { period: 'Apr 2027 – Mar 2028', facts: ['Remaining spectrometers to be assigned (plan: 28 by project end)', 'Final reporting and evaluation; sustainability planning'] },
+};
 
+const PerformanceReport = () => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const stats = networkStats();
+  const tr = trainingSummary();
+  const ex = exemptionSummary();
+  const t = METRICS.totals;
+  const fyNow = METRICS.fiscalYearNow;
+  const fyOrder = ['FY2024-25', 'FY2025-26', 'FY2026-27', 'FY2027-28'];
+  const sessionsByFy = (fy) => PWLLE_TRAINING_SESSIONS.filter((s) => s.status === 'Complete' && s.scheduledDate && fyOf(s.scheduledDate) === fy);
+  const kpis = [
+    { label: 'Point-of-care scans, all time', value: t.pocAllTime.toLocaleString(), icon: <Activity size={20} className="text-purple-600" aria-hidden="true" />, desc: `Since Nov 2022 · ${t.pocPhase2SinceJun27_2024.toLocaleString()} in Phase 2 (from 27 Jun 2024)` },
+    { label: `Scans this fiscal year (${fyNow})`, value: t.pocFiscalYearToDate.toLocaleString(), icon: <BarChart3 size={20} className="text-indigo-600" aria-hidden="true" />, desc: `${t.pocLast12Months.toLocaleString()} in the last 12 months · ${t.sitesWithPocLast12Months} sites scanning` },
+    { label: 'Partner organizations (signed)', value: stats.signedPartners, icon: <Building2 size={20} className="text-green-600" aria-hidden="true" />, desc: `${stats.activeSites - 1} operating · ${stats.plannedSites} installing Dec 2026 · ${stats.onboarding} onboarding` },
+    { label: 'Spectrometers', value: `${stats.deployedDevices} / ${stats.allocatedDevices}`, icon: <Zap size={20} className="text-blue-600" aria-hidden="true" />, desc: `deployed / allocated · plan ${stats.plannedDevicesTotal} by Mar 2028` },
+    { label: 'Provinces', value: stats.provinces.length, icon: <Globe size={20} className="text-indigo-600" aria-hidden="true" />, desc: stats.provinces.join(', ') },
+    { label: 'PWLLE trained (unique)', value: tr.uniquePwlle, icon: <GraduationCap size={20} className="text-orange-600" aria-hidden="true" />, desc: `${tr.attendants} attendances across ${tr.sessionsComplete} sessions · last ${fmtDate(PWLLE_TRAINING_SESSIONS.filter((s) => s.status === 'Complete').map((s) => s.scheduledDate).sort().slice(-1)[0])}` },
+    { label: 'Active exemptions on file', value: ex.active.length, icon: <CheckCircle size={20} className="text-green-600" aria-hidden="true" />, desc: `${ex.sitesWithActive.size} sites · ${ex.expiringSoon.length} expiring within 90 days · ${ex.pending.length} pending · ${ex.toConfirm.length} to confirm` },
+    { label: 'Peer-reviewed publications', value: '1', icon: <BookOpen size={20} className="text-purple-600" aria-hidden="true" />, desc: 'Harm Reduction Journal, Feb 2026; a second manuscript in revision' },
+  ];
+  return (
+    <SectionCard id="performance" icon={BarChart3} title="Performance Report" subtitle={`Computed from the 13 Oct 2026 data pull · fiscal year ${fyNow} in progress`} expanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)}>
+      <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-8">
+        <div>
+          <h3 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Target size={18} aria-hidden="true" />Key figures</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {kpis.map((m) => (
+              <div key={m.label} className="bg-white rounded-xl border-2 border-purple-200 p-4">
+                <div className="flex items-center gap-3 mb-2">{m.icon}<span className="text-sm font-semibold text-gray-700">{m.label}</span></div>
+                <div className="text-3xl font-black text-purple-900 mb-1">{m.value}</div>
+                <div className="text-xs text-gray-500">{m.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Activity size={18} aria-hidden="true" />Site utilization, last 12 months</h3>
+          <UtilizationTable />
+        </div>
+        <div>
+          <h3 className="font-bold text-lg text-purple-900 mb-4 flex items-center gap-2"><Clock size={18} aria-hidden="true" />Fiscal years</h3>
+          <div className="space-y-4">
+            {fyOrder.map((fy) => {
+              const status = fy < fyNow ? 'complete' : fy === fyNow ? 'current' : 'upcoming';
+              const f = FY_FACTS[fy];
+              const poc = t.pocByFiscalYear[fy] || 0;
+              const sess = sessionsByFy(fy);
+              return (
+                <div key={fy} className={`rounded-xl border-2 p-4 ${status === 'current' ? 'border-purple-400 bg-purple-50' : status === 'complete' ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${status === 'current' ? 'bg-purple-700 text-white' : status === 'complete' ? 'bg-green-600 text-white' : 'bg-gray-400 text-white'}`}>{status.toUpperCase()}</span>
+                    <span className="font-bold text-gray-900">{fy}</span>
+                    <span className="text-sm text-gray-600">{f.period}</span>
+                    <span className="ml-auto text-sm text-gray-700"><strong>{poc.toLocaleString()}</strong> point-of-care scans{status === 'current' ? ' to date' : ''} · <strong>{sess.length}</strong> DCP sessions ({sess.reduce((n, s) => n + (s.newAttendants || 0), 0)} unique PWLLE)</span>
+                  </div>
+                  <ul className="space-y-1 ml-4">{f.facts.map((h) => <li key={h} className="text-sm text-gray-700 flex items-start gap-2"><span aria-hidden="true" className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${status === 'current' ? 'bg-purple-500' : status === 'complete' ? 'bg-green-500' : 'bg-gray-400'}`}></span>{h}</li>)}</ul>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4">
+          <h3 className="font-bold text-yellow-900 mb-2 flex items-center gap-2"><AlertTriangle size={18} className="text-yellow-600" aria-hidden="true" />Open items affecting the figures</h3>
+          <ul className="space-y-2 text-sm text-yellow-900">
+            <li>Mass spectrometry at Western paused since Jul 2026; no laboratory confirmations since then (Drug Analysis Service limit 20 samples per month).</li>
+            <li>{ex.expiringSoon.length} active exemption{ex.expiringSoon.length === 1 ? '' : 's'} expire within 90 days ({ex.expiringSoon.map((e) => e.site).filter((v, i, a) => a.indexOf(v) === i).join(', ') || 'none'}); {ex.expired.length} expired with renewals submitted.</li>
+            <li>Sites with a device but no scans in the last 12 months: {METRICS.sites.filter((s) => s.known && s.pocLast12Months === 0 && ALL_PARTNERS.some((p) => p.username === s.username && p.status === 'active')).map((s) => s.site).join(', ') || 'none'}.</li>
+            <li>Training sessions held after 10 Apr 2026 other than AIDS New Brunswick (31 Jul) are not yet recorded in the tracker.</li>
+          </ul>
+        </div>
+        <DataStamp metrics={METRICS} partners={partnersMeta} />
+      </div>
+    </SectionCard>
+  );
+};
+
+const fyOf = (iso) => { const [y, m] = iso.split('-').map(Number); const fy = m >= 4 ? y : y - 1; return `FY${fy}-${String(fy + 1).slice(2)}`; };
+
+// ─── Site notes & action items ───────────────────────────────────────────────
 const SiteNotes = () => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const priorityStyles = {
-    high: { bg: 'bg-red-50', border: 'border-red-300', badge: 'bg-red-100 text-red-700', label: 'Action Required' },
+  const styles = {
+    high: { bg: 'bg-red-50', border: 'border-red-300', badge: 'bg-red-100 text-red-700', label: 'Action' },
     medium: { bg: 'bg-yellow-50', border: 'border-yellow-300', badge: 'bg-yellow-100 text-yellow-700', label: 'Monitor' },
     low: { bg: 'bg-blue-50', border: 'border-blue-300', badge: 'bg-blue-100 text-blue-700', label: 'Info' },
   };
+  const order = { high: 0, medium: 1, low: 2 };
+  const notes = [...siteNotesJson.notes].sort((a, b) => (order[a.priority] - order[b.priority]) || ((a.due || '9') > (b.due || '9') ? 1 : -1));
+  const dueSoon = notes.filter((n) => n.due && daysUntil(n.due) <= 30);
   return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-        <div>
-          <h2 className="flex items-center gap-2 font-bold text-2xl"><StickyNote size={28} />Site Notes & Action Items</h2>
-          <p className="text-purple-200 text-sm mt-1">Internal research team notes on partner sites requiring attention</p>
-        </div>
-        <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
-          <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
-          {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
-        </div>
-      </div>
-      {isExpanded && (
-        <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-3">
-          {SITE_NOTES.map((s, i) => {
-            const style = priorityStyles[s.priority];
-            return (
-              <div key={i} className={`${style.bg} border-2 ${style.border} rounded-xl p-4`}>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${style.badge}`}>{style.label}</span>
-                  <span className="font-bold text-gray-900">{s.site}</span>
-                  <span className="text-sm text-gray-500">{s.city}</span>
-                </div>
-                <ul className="space-y-1 ml-4">
-                  {s.notes.map((n, j) => (
-                    <li key={j} className="text-sm text-gray-700 flex items-start gap-2">
-                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gray-400"></span>
-                      {n}
-                    </li>
-                  ))}
-                </ul>
+    <SectionCard id="site-notes" icon={StickyNote} title="Site Notes & Action Items" subtitle={`Internal · ${notes.filter((n) => n.priority === 'high').length} action items · updated ${fmtDate(siteNotesJson.lastUpdated)}`} expanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)}>
+      <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-3">
+        {dueSoon.length > 0 && <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-3 text-sm text-orange-900"><strong>Due within 30 days:</strong> {dueSoon.map((n) => `${n.site} (${fmtDate(n.due)})`).join(' · ')}</div>}
+        {notes.map((s, i) => {
+          const st = styles[s.priority] || styles.low;
+          return (
+            <article key={i} className={`${st.bg} border-2 ${st.border} rounded-xl p-4`}>
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${st.badge}`}>{st.label}</span>
+                <span className="font-bold text-gray-900">{s.site}</span>
+                {s.owner && <span className="text-xs text-gray-600">Owner: {s.owner}</span>}
+                {s.due && <span className="text-xs text-gray-600">Due {fmtDate(s.due)}</span>}
               </div>
-            );
-          })}
-          <p className="text-xs text-gray-500 italic mt-4">These notes are for internal research team reference only. Last updated: March 31, 2026.</p>
-        </div>
-      )}
-    </div>
+              <ul className="space-y-1 ml-4">{s.items.map((n, j) => <li key={j} className="text-sm text-gray-700 flex items-start gap-2"><span aria-hidden="true" className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 bg-gray-400"></span>{n}</li>)}</ul>
+            </article>
+          );
+        })}
+        <p className="text-xs text-gray-500 mt-4">Internal research-team notes; source is the weekly meeting agenda. Edit src/data/site_notes.json to update.</p>
+      </div>
+    </SectionCard>
   );
 };
 
-const formatDateDisplay = (dateStr) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
-const PWLLETrainingSessionsTracker = () => (
-  <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-    <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
-      <h2 className="flex items-center gap-2 font-bold text-2xl"><Users size={28} />PWLLE Drug-Checking Peer Training Sessions</h2>
-      <p className="text-purple-200 text-sm mt-1">128 Total Attendants | 91 Unique PWLLE Trained</p>
-    </div>
-    <div className="p-6 bg-gradient-to-br from-white to-purple-50">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gradient-to-r from-purple-600 to-purple-800 text-white">
-              <th className="border border-purple-300 p-3 text-left">Site</th>
-              <th className="border border-purple-300 p-3 text-left">Location</th>
-              <th className="border border-purple-300 p-3 text-center">Session #</th>
-              <th className="border border-purple-300 p-3 text-left">Scheduled Date</th>
-              <th className="border border-purple-300 p-3 text-left">Purpose</th>
-              <th className="border border-purple-300 p-3 text-center">Status</th>
-              <th className="border border-purple-300 p-3 text-center"># Attendants</th>
-              <th className="border border-purple-300 p-3 text-center"># New</th>
-              <th className="border border-purple-300 p-3 text-left">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PWLLE_TRAINING_SESSIONS.map((session, idx) => (
-              <tr key={session.id} className={idx % 2 === 0 ? 'bg-purple-50' : 'bg-white'}>
-                <td className="border border-purple-200 p-3 font-semibold text-purple-900">{session.site}</td>
-                <td className="border border-purple-200 p-3">{session.location}</td>
-                <td className="border border-purple-200 p-3 text-center font-bold">{session.sessionNum}</td>
-                <td className="border border-purple-200 p-3">{formatDateDisplay(session.scheduledDate)}</td>
-                <td className="border border-purple-200 p-3">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${session.purpose === 'Focus Group' ? 'bg-blue-100 text-blue-800' : session.purpose === 'Feedback on Materials' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                    {session.purpose}
-                  </span>
-                </td>
-                <td className="border border-purple-200 p-3 text-center">
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium flex items-center justify-center gap-1">
-                    <CheckCircle size={12} />{session.completed}
-                  </span>
-                </td>
-                <td className="border border-purple-200 p-3 text-center font-bold text-purple-700">{session.attendants}</td>
-                <td className="border border-purple-200 p-3 text-center font-medium">{session.newAttendants}</td>
-                <td className="border border-purple-200 p-3 text-xs text-gray-600">{session.notes}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-);
-
-const CanadianFlag = ({ size = 20 }) => (
-  <svg width={size * 1.5} height={size} viewBox="0 0 30 20" className="inline-block ml-2" style={{ verticalAlign: 'middle' }}>
-    <rect width="30" height="20" fill="#fff"/>
-    <rect width="7.5" height="20" fill="#FF0000"/>
-    <rect x="22.5" width="7.5" height="20" fill="#FF0000"/>
-    <path fill="#FF0000" d="M15 4l-1 2h-2l1.5 1.5-.5 2.5 2-1 2 1-.5-2.5L18 6h-2l-1-2z"/>
-  </svg>
-);
-
-const ResetMapButton = () => {
-  const map = useMap();
-  return (
-    <button
-      onClick={() => map.setView([52.0, -95.0], 4)}
-      className="absolute top-4 right-4 z-[1000] bg-white p-2 rounded-lg shadow-lg border-2 border-purple-300 hover:bg-purple-50 transition-colors flex items-center gap-2"
-      title="Reset Map View"
-    >
-      <RotateCcw size={18} className="text-purple-700" />
-      <span className="text-sm font-medium text-purple-700">Reset View</span>
-    </button>
-  );
-};
-
-const ProjectPhases = () => (
-  <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-2xl shadow-lg border-2 border-purple-200 mb-4">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-white p-5 rounded-xl border-2 border-purple-300 shadow-md text-center">
-        <h3 className="font-bold text-2xl text-purple-900 mb-3">Phase #1</h3>
-        <p className="text-gray-800 font-semibold mb-2">Creating a Drug Checking Network Using Machine Learning Enabled Spectrometers</p>
-        <p className="text-sm text-gray-600">Health Canada, Substance Use and Addictions Program (<a href="https://www.canada.ca/en/health-canada/services/substance-use/canadian-drugs-substances-strategy/funding/substance-use-addictions-program.html" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:text-purple-900 underline">SUAP</a>)</p>
-        <p className="text-sm text-gray-600">Contribution Agreement_Arrangement # 2223-HQ-000095</p>
-      </div>
-      <div className="bg-white p-5 rounded-xl border-2 border-purple-300 shadow-md text-center">
-        <h3 className="font-bold text-2xl text-purple-900 mb-3">Phase #2</h3>
-        <p className="text-gray-800 font-semibold mb-2">Leading the Way: PWLLE at the Forefront of Drug-Checking Initiatives</p>
-        <p className="text-sm text-gray-600">Health Canada, Substance Use and Addictions Program (<a href="https://www.canada.ca/en/health-canada/services/substance-use/canadian-drugs-substances-strategy/funding/substance-use-addictions-program.html" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:text-purple-900 underline">SUAP</a>)</p>
-        <p className="text-sm text-gray-600">Amendment of Contribution Agreement_Arrangement # 2425-HQ-000058</p>
-      </div>
-    </div>
-    <div className="mt-6 overflow-x-auto">
-      <table className="w-full border-collapse bg-white rounded-xl overflow-hidden shadow-md">
-        <thead>
-          <tr className="bg-purple-100">
-            <th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Organization</th>
-            <th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Project Name</th>
-            <th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Description</th>
-            <th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Substances</th>
-            <th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Location</th>
-            <th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Funding</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="hover:bg-purple-50">
-            <td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">University of Western Ontario</td>
-            <td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">Leading the Way: People with Lived and Living Experience at the Forefront of Drug-Checking Initiative</td>
-            <td className="border border-gray-200 px-4 py-3 text-sm text-gray-700 align-top">This initiative will integrate People with Lived and Living Experience (PWLLE) into drug-checking initiatives by training them in drug-checking technologies to enable them to implement drug-checking initiatives and training programs in participating harm reduction and public health centres in Alberta, Ontario, Manitoba and Nova Scotia.</td>
-            <td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">Multiple substances</td>
-            <td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">London, Ontario</td>
-            <td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top font-medium">$4,473,473</td>
-          </tr>
-        </tbody>
-      </table>
-      <p className="text-xs text-gray-500 mt-2 text-right">Source: <a href="https://www.canada.ca/en/health-canada/services/substance-use/canadian-drugs-substances-strategy/funding/substance-use-addictions-program/active-projects.html" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:underline">Health Canada SUAP Active Projects</a></p>
-    </div>
-  </div>
-);
-
-const ProjectContactInfo = ({ isFooter = false }) => (
-  <div className={`bg-gradient-to-br ${isFooter ? 'from-purple-100 to-purple-200' : 'from-purple-50 to-white'} p-6 rounded-2xl shadow-lg border-2 border-purple-200 ${isFooter ? 'mt-6' : 'mb-4'}`}>
-    <h3 className="font-bold text-xl text-purple-900 mb-4 flex items-center gap-2">
-      <Mail size={24} className="text-purple-700" />
-      Project Contact Information
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="bg-white p-4 rounded-xl border border-purple-200">
-        <div className="font-bold text-purple-900 mb-2">Principal Investigator (PI):</div>
-        <div className="text-gray-800 font-medium">Professor Francois Lagugne-Labarthet</div>
-        <div className="text-gray-600">Faculty of Science, Western University</div>
-        <div className="text-gray-600">London, ON, Canada</div>
-        <div className="flex items-center gap-2 mt-2 text-purple-700"><Phone size={14} /><span>519-661-2111 x81006</span></div>
-        <div className="flex items-center gap-2 text-purple-700"><Mail size={14} /><a href="mailto:flagugne@uwo.ca" className="hover:underline">flagugne@uwo.ca</a></div>
-        <div className="flex items-center gap-2 mt-2 text-purple-700"><ExternalLink size={14} /><a href="https://publish.uwo.ca/~flagugne/#about" target="_blank" rel="noopener noreferrer" className="hover:underline">FLL Group Bio</a></div>
-      </div>
-      <div className="bg-white p-4 rounded-xl border border-purple-200">
-        <div className="font-bold text-purple-900 mb-2">Project Manager:</div>
-        <div className="text-gray-800 font-medium">Cameron Brown</div>
-        <div className="text-gray-600">Faculty of Science, Western University</div>
-        <div className="text-gray-600">London, ON, Canada</div>
-        <div className="flex items-center gap-2 mt-2 text-purple-700"><Phone size={14} /><span>226-238-9970</span></div>
-        <div className="flex items-center gap-2 text-purple-700"><Mail size={14} /><a href="mailto:cbrown58@uwo.ca" className="hover:underline">cbrown58@uwo.ca</a></div>
-        <div className="flex items-center gap-2 mt-2 text-purple-700"><ExternalLink size={14} /><a href="https://publish.uwo.ca/~flagugne/#about" target="_blank" rel="noopener noreferrer" className="hover:underline">FLL Group Bio</a></div>
-      </div>
-    </div>
-  </div>
-);
-
-const PowerPointViewer = () => {
+// ─── DCP training status by site (derived from the sessions table) ───────────
+const TrainingTracker = () => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const pptxUrl = `https://partners.uwo-drugchecking.ca/project-presentation.pptx?v=${Date.now()}`;
-  const embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(pptxUrl)}`;
+  const tr = trainingSummary();
+  const sites = ALL_PARTNERS.filter((p) => !p.isLead && p.status !== 'closed');
+  const matchSite = (p) => Object.values(tr.bySite).find((e) => e.site === p.nameOrganization || e.site === p.shortName || (p.nameOrganization || '').startsWith(e.site.split(' (')[0]) || e.site.startsWith((p.shortName || '').split(' (')[0]));
+  const done = sites.filter((p) => matchSite(p)?.certified);
   return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden mb-8">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-        <h2 className="flex items-center gap-2 font-bold text-2xl"><Presentation size={28} />Project Overview Presentation</h2>
-        <div className="flex items-center gap-3">
-          {isExpanded && <button onClick={(e) => { e.stopPropagation(); setIsFullscreen(!isFullscreen); }} className="p-2 hover:bg-purple-600 rounded-lg transition-colors">{isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>}
-          <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
-            <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
-            {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
-          </div>
-        </div>
-      </div>
-      {isExpanded && (
-        <div className={`bg-gradient-to-br from-white to-purple-50 ${isFullscreen ? 'fixed inset-0 z-50 p-4' : 'p-6'}`}>
-          {isFullscreen && <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-purple-900">Project Overview Presentation</h2><button onClick={() => setIsFullscreen(false)} className="p-2 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors"><Minimize2 size={20} className="text-purple-700" /></button></div>}
-          <div className={`${isFullscreen ? 'h-[calc(100%-60px)]' : 'h-[600px]'} w-full rounded-lg overflow-hidden border-2 border-purple-200 shadow-lg`}>
-            <iframe src={embedUrl} width="100%" height="100%" frameBorder="0" allowFullScreen title="Project Presentation" className="bg-white" />
-          </div>
-          <p className="text-sm text-purple-600 mt-3 text-center">Click through the slides above to view the full project presentation. <a href={pptxUrl} download className="ml-2 underline hover:text-purple-800">Download PowerPoint</a></p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ScatrResearchPDFViewer = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const pdfUrl = `https://partners.uwo-drugchecking.ca/Scatr-Technical-Research-Strategy.pdf`;
-  return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden mb-8">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-        <h2 className="flex items-center gap-2 font-bold text-2xl"><FileText size={28} />Scatr Technical Research Strategy</h2>
-        <div className="flex items-center gap-3">
-          {isExpanded && <button onClick={(e) => { e.stopPropagation(); setIsFullscreen(!isFullscreen); }} className="p-2 hover:bg-purple-600 rounded-lg transition-colors">{isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}</button>}
-          <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
-            <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
-            {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
-          </div>
-        </div>
-      </div>
-      {isExpanded && (
-        <div className={`bg-gradient-to-br from-white to-purple-50 ${isFullscreen ? 'fixed inset-0 z-50 p-4' : 'p-6'}`}>
-          {isFullscreen && <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-purple-900">Scatr Technical Research Strategy</h2><button onClick={() => setIsFullscreen(false)} className="p-2 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors"><Minimize2 size={20} className="text-purple-700" /></button></div>}
-          <div className={`${isFullscreen ? 'h-[calc(100%-60px)]' : 'h-[600px]'} w-full rounded-lg overflow-hidden border-2 border-purple-200 shadow-lg`}>
-            <iframe src={pdfUrl} width="100%" height="100%" frameBorder="0" title="Scatr Technical Research Strategy" className="bg-white" />
-          </div>
-          <p className="text-sm text-purple-600 mt-3 text-center">Scroll through the document above to view the full Scatr Technical Research Strategy. <a href={pdfUrl} download className="ml-2 underline hover:text-purple-800">Download PDF</a></p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ProjectPublications = () => (
-  <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-    <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
-      <h2 className="flex items-center gap-2 font-bold text-2xl"><BookOpen size={28} />Project-Related Publications</h2>
-    </div>
-    <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-4">
-      <div className="bg-white rounded-xl border-2 border-green-300 shadow-lg p-6">
-        <div className="flex items-start gap-4">
-          <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0">✓ PUBLISHED</div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Open Access</span>
-              <span className="text-xs text-gray-500">Harm Reduction Journal · February 8, 2026</span>
-            </div>
-            <h3 className="font-bold text-purple-900 text-lg leading-snug mb-2">Street drug monitoring with networked spectrometers powered by machine learning: a pilot study in Ontario, Canada</h3>
-            <p className="text-sm text-gray-600 mb-3">Aliyari E., Brown C., Van Boheemen M., Wardlaw L., Storm T., Hopkins A.M., Ezepue S., Dewar D., Sodtke L., McNab K., Watkins J., Pham A.T., Oudshoorn A., &amp; Lagugné-Labarthet F.</p>
-            <p className="text-sm text-gray-500 italic mb-4"><em>Harm Reduction Journal</em>, Volume 23, Article 45 (2026). DOI: 10.1186/s12954-026-01403-3</p>
-            <p className="text-sm text-gray-700 mb-4">Reports on 7,752 street drug samples analyzed across 10 Ontario harm reduction sites over 14 months (July 2023–August 2024) using networked Raman spectrometers with ML-enabled real-time analysis. Includes comparative validation against HPLC-MS and self-reported participant consumption-related behavior change data from 3,902 respondents.</p>
-            <div className="flex flex-wrap gap-3">
-              <a href="https://link.springer.com/article/10.1186/s12954-026-01403-3" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800 transition-colors text-sm font-medium"><ExternalLink size={16} />Read Full Paper</a>
-              <a href="https://link.springer.com/content/pdf/10.1186/s12954-026-01403-3.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white text-purple-700 border-2 border-purple-700 px-4 py-2 rounded-lg hover:bg-purple-50 transition-colors text-sm font-medium"><Download size={16} />Download PDF</a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <p className="text-xs text-gray-500 text-center italic">Additional publications will be listed here as the project progresses.</p>
-    </div>
-  </div>
-);
-
-const PartnerDiscussionBoard = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-        <h2 className="flex items-center gap-2 font-bold text-2xl"><MessageSquare size={28} />Partner Discussion Board</h2>
-        <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
-          <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
-          {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
-        </div>
-      </div>
-      {isExpanded && (
-        <div className="p-6 bg-gradient-to-br from-white to-purple-50">
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-6 rounded-xl border-2 border-purple-300 text-center">
-              <MessageSquare size={64} className="mx-auto text-purple-600 mb-4" />
-              <h3 className="text-2xl font-bold text-purple-900 mb-2">Discussion Forum Coming Soon!</h3>
-              <p className="text-purple-700 mb-4">We're setting up a dedicated discussion board where project partners can ask questions, share updates, collaborate, and discuss best practices.</p>
-            </div>
-            <div className="bg-yellow-50 p-4 rounded-xl border-2 border-yellow-200">
-              <div className="flex items-start gap-3">
-                <div className="text-2xl">📧</div>
-                <div>
-                  <div className="font-bold text-yellow-800 mb-1">In the meantime...</div>
-                  <p className="text-sm text-yellow-700">Please direct any questions or concerns to the Project Manager at <a href="mailto:cbrown58@uwo.ca" className="underline hover:text-yellow-900">cbrown58@uwo.ca</a> or call <span className="font-medium">226-238-9970</span>.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const BackToTop = () => {
-  const [isVisible, setIsVisible] = useState(false);
-  useEffect(() => {
-    const toggle = () => setIsVisible(window.scrollY > 300);
-    window.addEventListener('scroll', toggle);
-    return () => window.removeEventListener('scroll', toggle);
-  }, []);
-  if (!isVisible) return null;
-  return (
-    <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="fixed bottom-6 right-6 z-50 bg-purple-700 hover:bg-purple-800 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center gap-2 group" title="Back to Top">
-      <ArrowUp size={24} />
-      <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap text-sm font-medium">Back to Top</span>
-    </button>
-  );
-};
-
-const AnnouncementBanner = ({ onDismiss }) => {
-  if (!ANNOUNCEMENT_CONFIG.isActive) return null;
-  const bgColors = { info: 'bg-gradient-to-r from-blue-600 to-blue-700', warning: 'bg-gradient-to-r from-yellow-500 to-yellow-600', urgent: 'bg-gradient-to-r from-red-600 to-red-700' };
-  const icons = { info: <Newspaper size={20} />, warning: <AlertTriangle size={20} />, urgent: <AlertTriangle size={20} /> };
-  return (
-    <div className={`${bgColors[ANNOUNCEMENT_CONFIG.type]} text-white px-4 py-3 shadow-lg`}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {icons[ANNOUNCEMENT_CONFIG.type]}
-          <span className="text-sm font-medium">{ANNOUNCEMENT_CONFIG.message}</span>
-          {ANNOUNCEMENT_CONFIG.link && <a href={ANNOUNCEMENT_CONFIG.link.url} className="underline hover:no-underline text-sm font-bold">{ANNOUNCEMENT_CONFIG.link.text}</a>}
-        </div>
-        <button onClick={onDismiss} className="p-1 hover:bg-white/20 rounded transition-colors"><X size={18} /></button>
-      </div>
-    </div>
-  );
-};
-
-const NewsUpdatesFeed = () => {
-  const [showAll, setShowAll] = useState(false);
-  const displayedNews = showAll ? NEWS_UPDATES : NEWS_UPDATES.slice(0, 3);
-  const formatDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
-        <h2 className="flex items-center gap-2 font-bold text-2xl"><Newspaper size={28} />News & Updates</h2>
-      </div>
-      <div className="p-6 bg-gradient-to-br from-white to-purple-50">
-        <div className="space-y-4">
-          {displayedNews.map((item, idx) => (
-            <div key={idx} className="bg-white p-4 rounded-xl border-2 border-purple-200 hover:shadow-lg transition-shadow">
-              <div className="flex items-start gap-4">
-                <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">{formatDate(item.date)}</div>
-                <div>
-                  <h3 className="font-bold text-purple-900 mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.description}{item.link && <> <a href={item.link.url} target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:text-purple-900 underline font-medium">{item.link.text} →</a></>}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        {NEWS_UPDATES.length > 3 && (
-          <button onClick={() => setShowAll(!showAll)} className="mt-4 w-full py-2 text-purple-700 hover:text-purple-900 font-medium text-sm flex items-center justify-center gap-2">
-            {showAll ? <><ChevronUp size={18} /> Show Less</> : <><ChevronDown size={18} /> Show All Updates ({NEWS_UPDATES.length})</>}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const FAQSection = () => {
-  const [expandedFaq, setExpandedFaq] = useState(null);
-  return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
-        <h2 className="flex items-center gap-2 font-bold text-2xl"><HelpCircle size={28} />Frequently Asked Questions</h2>
-      </div>
-      <div className="p-6 bg-gradient-to-br from-white to-purple-50">
-        <div className="space-y-3">
-          {FAQ_DATA.map((faq, idx) => (
-            <div key={idx} className="bg-white rounded-xl border-2 border-purple-200 overflow-hidden">
-              <button onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)} className="w-full px-4 py-3 text-left flex items-center justify-between gap-4 hover:bg-purple-50 transition-colors">
-                <span className="font-medium text-purple-900">{faq.question}</span>
-                {expandedFaq === idx ? <ChevronUp size={20} className="text-purple-600 flex-shrink-0" /> : <ChevronDown size={20} className="text-purple-600 flex-shrink-0" />}
-              </button>
-              {expandedFaq === idx && <div className="px-4 pb-4 pt-0"><div className="bg-purple-50 p-4 rounded-lg text-sm text-gray-700 leading-relaxed">{faq.answer}</div></div>}
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 bg-gradient-to-br from-purple-100 to-purple-200 p-4 rounded-xl border-2 border-purple-300">
-          <p className="text-sm text-purple-800"><span className="font-bold">Further Questions?</span> Contact the Project Manager at <a href="mailto:cbrown58@uwo.ca" className="underline hover:text-purple-900">cbrown58@uwo.ca</a> or call <span className="font-medium">226-238-9970</span>.</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TrainingTracker = ({ partnersData }) => {
-  const completedCount = Object.values(TRAINING_STATUS).filter(s => s.completed).length;
-  const totalCount = Object.keys(TRAINING_STATUS).length;
-  const progressPercent = (completedCount / totalCount) * 100;
-  const formatDate = (d) => { if (!d) return null; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
-  return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
-        <h2 className="flex items-center gap-2 font-bold text-2xl"><GraduationCap size={28} />Drug-Checking Peer (DCP) Training Status</h2>
-      </div>
+    <SectionCard id="training-status" icon={GraduationCap} title="Drug-Checking Peer (DCP) Training Status by Site" subtitle={`${done.length} of ${sites.length} partner organizations have completed a DCP certification session`} expanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)}>
       <div className="p-6 bg-gradient-to-br from-white to-purple-50">
         <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-purple-900">Network Training Progress</span>
-            <span className="text-sm font-bold text-purple-700">{completedCount} of {totalCount} sites ({Math.round(progressPercent)}%)</span>
-          </div>
-          <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
-          </div>
+          <div className="flex justify-between items-center mb-2"><span className="text-sm font-medium text-purple-900">Network training progress</span><span className="text-sm font-bold text-purple-700">{done.length} of {sites.length} ({Math.round((done.length / sites.length) * 100)}%)</span></div>
+          <div className="h-4 bg-gray-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={done.length} aria-valuemin={0} aria-valuemax={sites.length}><div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full" style={{ width: `${(done.length / sites.length) * 100}%` }}></div></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {partnersData.map((site) => {
-            const status = TRAINING_STATUS[site.id];
+        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {sites.map((p) => {
+            const e = matchSite(p);
+            const ok = !!e?.certified;
             return (
-              <div key={site.id} className={`p-3 rounded-xl border-2 flex items-center gap-3 ${status?.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${status?.completed ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-500'}`}>
-                  {status?.completed ? <Check size={18} /> : <Clock size={18} />}
-                </div>
+              <li key={p.id} className={`p-3 rounded-xl border-2 flex items-center gap-3 ${ok ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${ok ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`} aria-hidden="true">{ok ? <Check size={18} /> : <Clock size={18} />}</div>
                 <div className="min-w-0">
-                  <div className={`font-medium text-sm truncate ${status?.completed ? 'text-green-900' : 'text-gray-700'}`}>{site.nameOrganization.length > 30 ? site.nameOrganization.substring(0, 27) + '...' : site.nameOrganization}</div>
-                  <div className="text-xs text-gray-500">{status?.completed ? `Completed ${formatDate(status.date)}` : 'Training Pending'}</div>
+                  <div className={`font-medium text-sm truncate ${ok ? 'text-green-900' : 'text-gray-700'}`}>{p.nameOrganization}</div>
+                  <div className="text-xs text-gray-500">{ok ? `${e.unique} unique PWLLE · last session ${fmtDate(e.lastDate)}` : e ? `${e.sessions} session(s), certification pending` : 'No session yet'}</div>
                 </div>
-              </div>
+              </li>
             );
           })}
+        </ul>
+      </div>
+    </SectionCard>
+  );
+};
+
+const RESEARCH_TOC = [
+  { id: 'performance', label: 'Performance Report' },
+  { id: 'exemptions', label: 'Exemption 56 Tracker' },
+  { id: 'site-notes', label: 'Site Notes & Action Items' },
+  { id: 'news', label: 'News & Updates' },
+  { id: 'metrics', label: 'Network Summary & Analytics' },
+  { id: 'map', label: 'Interactive Map View of Partner Sites' },
+  { id: 'table', label: 'Complete Partner Data' },
+  { id: 'pwlle-sessions', label: 'PWLLE Training Sessions' },
+  { id: 'training-status', label: 'DCP Training Status by Site' },
+  { id: 'timeline', label: 'Project Timeline' },
+  { id: 'publications', label: 'Project-Related Publications' },
+  { id: 'presentation', label: 'Project Overview Presentation' },
+  { id: 'scatr-research', label: 'Scatr Technical Research Strategy' },
+  { id: 'documents', label: 'Research, Ethics & Exemptions Documents' },
+  { id: 'links', label: 'Related Links & Resources' },
+];
+
+const PresentationCard = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showInline, setShowInline] = useState(false);
+  const pptxUrl = 'https://partners.uwo-drugchecking.ca/project-presentation.pptx';
+  const embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(pptxUrl)}`;
+  return (
+    <SectionCard id="presentation" icon={Presentation} title="Project Overview Presentation" expanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)}>
+      <div className="p-6 bg-gradient-to-br from-white to-purple-50">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <a href={pptxUrl} download className="inline-flex items-center gap-2 bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800 text-sm font-medium"><Download size={16} aria-hidden="true" />Download PowerPoint</a>
+          <button type="button" onClick={() => setShowInline(!showInline)} aria-expanded={showInline} className="inline-flex items-center gap-2 bg-purple-100 text-purple-800 px-4 py-2 rounded-lg hover:bg-purple-200 text-sm font-medium">{showInline ? 'Hide preview' : 'Preview here (Office viewer)'}</button>
         </div>
-        <div className="mt-4 bg-yellow-50 p-4 rounded-xl border-2 border-yellow-200">
-          <p className="text-sm text-yellow-800"><span className="font-bold">Ready to schedule training?</span> Contact the Project Manager at <a href="mailto:cbrown58@uwo.ca" className="underline hover:text-yellow-900">cbrown58@uwo.ca</a> to arrange a virtual training session for your team.</p>
-        </div>
+        {showInline && <div className="h-[600px] w-full rounded-lg overflow-hidden border-2 border-purple-200 shadow-lg"><iframe src={embedUrl} width="100%" height="100%" frameBorder="0" allowFullScreen title="Project presentation" className="bg-white" /></div>}
       </div>
-    </div>
+    </SectionCard>
   );
 };
 
-const printContactList = (partnersData) => {
-  const printWindow = window.open('', '_blank');
-  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const html = `<!DOCTYPE html><html><head><title>Project Partner Contact List - ${today}</title><style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px}h1{font-size:18px;color:#5b21b6;margin-bottom:5px}h2{font-size:12px;color:#666;font-weight:normal;margin-top:0}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #ddd;padding:6px;text-align:left}th{background-color:#5b21b6;color:white;font-size:10px}tr:nth-child(even){background-color:#f9f9f9}.footer{margin-top:20px;font-size:10px;color:#666;border-top:1px solid #ddd;padding-top:10px}@media print{body{margin:10px}table{font-size:9px}th,td{padding:4px}}</style></head><body><h1>Western University Drug-Checking Network</h1><h2>Project Partner Contact List - Generated ${today}</h2><table><thead><tr><th>Organization</th><th>City, Prov</th><th>Primary Contact</th><th>Email</th><th>Phone</th><th>Additional Contact</th><th>Email</th><th>Phone</th></tr></thead><tbody>${partnersData.map(site => `<tr><td><strong>${site.nameOrganization}</strong></td><td>${site.city}, ${site.prov}</td><td>${site.primaryContact}</td><td>${site.email1}</td><td>${site.phone1}</td><td>${site.additionalContact}</td><td>${site.email2}</td><td>${site.phone2}</td></tr>`).join('')}</tbody></table><div class="footer"><p><strong>Project Contact:</strong> Cameron Brown, Project Manager | cbrown58@uwo.ca | 226-238-9970</p><p><strong>Principal Investigator:</strong> Prof. Francois Lagugne-Labarthet | flagugne@uwo.ca | 519-661-2111 x81006</p><p><em>This document contains confidential contact information. Please do not share outside the project network.</em></p></div></body></html>`;
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => printWindow.print(), 250);
-};
-
-const ProgressRing = ({ progress, size = 120, strokeWidth = 10, color = '#7c3aed' }) => {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (progress / 100) * circumference;
-  return (
-    <svg width={size} height={size} className="transform -rotate-90">
-      <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={strokeWidth} />
-      <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
-    </svg>
-  );
-};
-
-const Sparkline = ({ data, color = '#7c3aed', height = 40 }) => {
-  const max = Math.max(...data), min = Math.min(...data), range = max - min || 1, width = 100;
-  const points = data.map((val, i) => `${(i/(data.length-1))*width},${height-((val-min)/range)*(height-4)-2}`).join(' ');
-  return (
-    <svg width={width} height={height} className="overflow-visible">
-      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={width} cy={height-((data[data.length-1]-min)/range)*(height-4)-2} r="3" fill={color} />
-    </svg>
-  );
-};
-
-const DonutChart = ({ data, size = 160 }) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  const strokeWidth = 24, radius = (size - strokeWidth) / 2, circumference = radius * 2 * Math.PI;
-  let currentOffset = 0;
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        {data.map((item, idx) => {
-          const segmentLength = (item.value / total) * circumference;
-          const offset = currentOffset;
-          currentOffset += segmentLength;
-          return <circle key={idx} cx={size/2} cy={size/2} r={radius} fill="none" stroke={item.color} strokeWidth={strokeWidth} strokeDasharray={`${segmentLength} ${circumference - segmentLength}`} strokeDashoffset={-offset} className="transition-all duration-500" />;
-        })}
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center"><div className="text-2xl font-bold text-gray-800">{total}</div><div className="text-xs text-gray-500">Total</div></div>
-      </div>
-    </div>
-  );
-};
-
-const MiniCanadaMap = ({ activeProvinces }) => {
-  const c = (p) => activeProvinces.includes(p) ? '#7c3aed' : '#e5e7eb';
-  return (
-    <svg viewBox="0 0 300 200" className="w-full h-auto">
-      <path d="M20,60 L45,40 L50,80 L55,120 L35,140 L20,100 Z" fill={c('BC')} stroke="#fff" strokeWidth="1"/>
-      <path d="M50,50 L80,50 L80,120 L50,120 Z" fill={c('AB')} stroke="#fff" strokeWidth="1"/>
-      <path d="M80,50 L110,50 L110,120 L80,120 Z" fill={c('SK')} stroke="#fff" strokeWidth="1"/>
-      <path d="M110,50 L140,50 L145,80 L140,120 L110,120 Z" fill={c('MB')} stroke="#fff" strokeWidth="1"/>
-      <path d="M140,60 L180,50 L200,80 L190,130 L160,140 L140,120 Z" fill={c('ON')} stroke="#fff" strokeWidth="1"/>
-      <path d="M200,40 L240,30 L260,60 L250,100 L220,120 L200,100 Z" fill={c('QC')} stroke="#fff" strokeWidth="1"/>
-      <path d="M250,100 L270,95 L275,115 L255,120 Z" fill={c('NB')} stroke="#fff" strokeWidth="1"/>
-      <path d="M270,110 L290,105 L295,125 L275,130 Z" fill={c('NS')} stroke="#fff" strokeWidth="1"/>
-      <path d="M25,20 L45,20 L50,45 L30,50 Z" fill={c('YT')} stroke="#fff" strokeWidth="1"/>
-      <path d="M50,15 L120,15 L120,45 L50,45 Z" fill={c('NT')} stroke="#fff" strokeWidth="1"/>
-      <path d="M120,10 L200,10 L200,45 L140,50 L120,40 Z" fill={c('NU')} stroke="#fff" strokeWidth="1"/>
-      {activeProvinces.includes('BC') && <text x="35" y="95" className="text-[8px] font-bold fill-white">BC</text>}
-      {activeProvinces.includes('AB') && <text x="58" y="90" className="text-[8px] font-bold fill-white">AB</text>}
-      {activeProvinces.includes('SK') && <text x="88" y="90" className="text-[8px] font-bold fill-white">SK</text>}
-      {activeProvinces.includes('ON') && <text x="158" y="100" className="text-[8px] font-bold fill-white">ON</text>}
-      {activeProvinces.includes('QC') && <text x="220" y="75" className="text-[8px] font-bold fill-white">QC</text>}
-      {activeProvinces.includes('NB') && <text x="255" y="112" className="text-[6px] font-bold fill-white">NB</text>}
-      {activeProvinces.includes('NS') && <text x="275" y="122" className="text-[6px] font-bold fill-white">NS</text>}
-    </svg>
-  );
-};
-
-const SummaryMetrics = ({ partnersData, stats, sitesByProvince }) => {
-  const networkGrowth = [4, 8, 12, 16, 18, 20, 22, 22];
-  const regions = {
-    Western: { provinces: ['BC', 'AB'], sites: 0, devices: 0 },
-    Prairies: { provinces: ['SK', 'MB'], sites: 0, devices: 0 },
-    Central: { provinces: ['ON', 'QC'], sites: 0, devices: 0 },
-    Atlantic: { provinces: ['NB', 'NS', 'PE', 'NL'], sites: 0, devices: 0 },
-  };
-  partnersData.forEach(site => {
-    Object.keys(regions).forEach(region => {
-      if (regions[region].provinces.includes(site.prov)) {
-        regions[region].sites++;
-        regions[region].devices += parseInt(site.devicesAssigned);
-      }
-    });
-  });
-  const mobileCount = stats.mobileSites.length;
-  const nonMobileCount = stats.nonMobileSites.length;
-  const bothCount = partnersData.filter(s => s.exemptionType1 !== 'NA' && s.exemptionType2 !== 'NA').length;
-  const exemptionData = [
-    { label: 'Non-Mobile Only', value: nonMobileCount - bothCount, color: '#3b82f6' },
-    { label: 'Mobile Only', value: mobileCount - bothCount, color: '#10b981' },
-    { label: 'Both Types', value: bothCount, color: '#8b5cf6' },
-  ];
-  const provinceData = Object.entries(sitesByProvince).map(([prov, sites]) => ({ prov, count: sites.length, devices: partnersData.filter(s => s.prov === prov).reduce((sum, s) => sum + parseInt(s.devicesAssigned), 0) })).sort((a, b) => b.count - a.count);
-  const deviceProgress = (stats.totalDevices / 28) * 100;
-
-  return (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-5">
-        <h2 className="flex items-center gap-3 font-bold text-2xl"><Activity size={28} />Network Summary & Analytics</h2>
-        <p className="text-purple-200 text-sm mt-1">Real-time overview of the drug-checking network across Canada</p>
-      </div>
-      <div className="p-6 bg-gradient-to-br from-gray-50 to-white">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-4"><div className="bg-purple-100 p-3 rounded-xl"><Building2 size={28} className="text-purple-600" /></div><Sparkline data={networkGrowth} color="#7c3aed" /></div>
-            <div className="text-4xl font-black text-gray-900">{stats.totalPartners}</div>
-            <div className="text-sm font-medium text-gray-500 mt-1">Partner Sites</div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-4"><div className="bg-indigo-100 p-3 rounded-xl"><Zap size={28} className="text-indigo-600" /></div><div className="relative"><ProgressRing progress={deviceProgress} size={60} strokeWidth={6} color="#6366f1" /><div className="absolute inset-0 flex items-center justify-center"><span className="text-xs font-bold text-indigo-600">{Math.round(deviceProgress)}%</span></div></div></div>
-            <div className="text-4xl font-black text-gray-900">{stats.totalDevices}<span className="text-lg font-normal text-gray-400">/28</span></div>
-            <div className="text-sm font-medium text-gray-500 mt-1">Spectrometers Deployed</div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mt-3"><div className="bg-indigo-500 h-2 rounded-full transition-all duration-500" style={{ width: `${deviceProgress}%` }}></div></div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-4"><div className="bg-emerald-100 p-3 rounded-xl"><Globe size={28} className="text-emerald-600" /></div><div className="text-right"><div className="text-xs text-gray-400">Coverage</div><div className="text-sm font-bold text-emerald-600">{Math.round((stats.provinces.length / 13) * 100)}%</div></div></div>
-            <div className="text-4xl font-black text-gray-900">{stats.provinces.length}<span className="text-lg font-normal text-gray-400">/13</span></div>
-            <div className="text-sm font-medium text-gray-500 mt-1">Provinces & Territories</div>
-            <div className="flex flex-wrap gap-1 mt-3">{stats.provinces.map(p => <span key={p} className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-medium">{p}</span>)}</div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between mb-4"><div className="bg-amber-100 p-3 rounded-xl"><Navigation size={28} className="text-amber-600" /></div><Sparkline data={[8,12,14,16,18,19,20,20]} color="#f59e0b" /></div>
-            <div className="text-4xl font-black text-gray-900">20</div>
-            <div className="text-sm font-medium text-gray-500 mt-1">Cities Across Canada</div>
-            <div className="flex items-center gap-2 mt-3"><Target size={14} className="text-amber-500" /><span className="text-xs text-amber-600 font-medium">Coast to coast coverage</span></div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><MapPin size={20} className="text-purple-600" />Geographic Coverage</h3>
-            <div className="flex items-center gap-6">
-              <div className="flex-1"><MiniCanadaMap activeProvinces={stats.provinces} /></div>
-              <div className="flex-1">
-                <div className="space-y-3">
-                  {Object.entries(regions).map(([region, data]) => (
-                    <div key={region}>
-                      <div className="flex justify-between text-sm mb-1"><span className="font-medium text-gray-700">{region}</span><span className="text-gray-500">{data.sites} sites</span></div>
-                      <div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{ width: `${(data.sites/stats.totalPartners)*100}%` }}></div></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2"><Activity size={16} className="text-purple-600" />Province-by-Province Breakdown</h4>
-              <div className="flex flex-wrap gap-2">
-                {provinceData.map(({ prov, count, devices }) => (
-                  <div key={prov} className="bg-gray-50 rounded-lg px-3 py-2 hover:bg-purple-50 transition-colors flex items-center gap-2">
-                    <span className="text-lg font-black text-purple-700">{prov}</span>
-                    <span className="text-xs text-gray-600">{devices} device{devices !== 1 ? 's' : ''} · {count} site{count !== 1 ? 's' : ''}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><FileText size={20} className="text-purple-600" />Exemption Types Distribution</h3>
-            <div className="flex items-center justify-around">
-              <DonutChart data={exemptionData} size={160} />
-              <div className="space-y-4">
-                {exemptionData.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></div>
-                    <div><div className="text-sm font-medium text-gray-800">{item.label}</div><div className="text-lg font-bold" style={{ color: item.color }}>{item.value} sites</div></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 rounded-xl p-3 text-center"><Smartphone size={20} className="mx-auto text-blue-600 mb-1" /><div className="text-xl font-bold text-blue-700">{mobileCount}</div><div className="text-xs text-blue-600">Mobile Exemptions</div></div>
-              <div className="bg-emerald-50 rounded-xl p-3 text-center"><Building2 size={20} className="mx-auto text-emerald-600 mb-1" /><div className="text-xl font-bold text-emerald-700">{nonMobileCount}</div><div className="text-xs text-emerald-600">Non-Mobile Exemptions</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TableOfContents = () => {
-  const sections = [
-    { id: 'performance', label: 'Performance Report' },
-    { id: 'news', label: 'News & Updates' },
-    { id: 'timeline', label: 'Project Timeline' },
-    { id: 'publications', label: 'Project-Related Publications' },
-    { id: 'presentation', label: 'Project Overview Presentation' },
-    { id: 'scatr-research', label: 'Scatr Technical Research Strategy' },
-    { id: 'documents', label: 'Research, Ethics & Exemptions Documents' },
-    { id: 'exemptions', label: 'Exemption 56 Tracker' },
-    { id: 'site-notes', label: 'Site Notes & Action Items' },
-    { id: 'map', label: 'Interactive Map View of Partner Sites' },
-    { id: 'table', label: 'Complete Partner Data' },
-    { id: 'pwlle-sessions', label: 'PWLLE Training Sessions' },
-    { id: 'metrics', label: 'Network Summary & Analytics' },
-    { id: 'links', label: 'Related Links & Resources' }
-  ];
-  const scrollTo = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-  return (
-    <div className="mt-4 bg-white p-4 rounded-xl border-2 border-purple-300 shadow-md">
-      <div className="font-bold text-purple-900 mb-3 text-sm">Quick Navigation:</div>
-      <div className="grid grid-cols-2 gap-3">
-        {sections.map((section) => (
-          <button key={section.id} onClick={() => scrollTo(section.id)} className="text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 active:bg-purple-800 px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-left flex items-center gap-2 border-2 border-purple-700 hover:scale-[1.02]">
-            <span className="text-purple-200">→</span> {section.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ─── ProjectCountdown ─────────────────────────────────────────────────────────
-const ProjectCountdown = () => {
-  const PROJECT_END = new Date("2028-03-31T23:59:59");
-  const calculate = () => {
-    const now = new Date();
-    const totalMs = PROJECT_END - now;
-    if (totalMs <= 0) return { expired: true, years: 0, months: 0, weeks: 0, days: 0, totalDays: 0, pct: 100 };
-    const totalDays = Math.floor(totalMs / (1000 * 60 * 60 * 24));
-    let y = PROJECT_END.getFullYear() - now.getFullYear();
-    let m = PROJECT_END.getMonth() - now.getMonth();
-    if (m < 0) { y--; m += 12; }
-    let tempDate = new Date(now);
-    tempDate.setFullYear(tempDate.getFullYear() + y);
-    tempDate.setMonth(tempDate.getMonth() + m);
-    let rd = Math.floor((PROJECT_END - tempDate) / (1000 * 60 * 60 * 24));
-    const weeks = Math.floor(rd / 7);
-    const days = rd % 7;
-    const pct = Math.min(100, Math.max(0, ((now - new Date("2024-06-27")) / (PROJECT_END - new Date("2024-06-27"))) * 100));
-    return { expired: false, years: y, months: m, weeks, days, totalDays, pct };
-  };
-  const [time, setTime] = React.useState(calculate());
-  React.useEffect(() => { const t = setInterval(() => setTime(calculate()), 60000); return () => clearInterval(t); }, []);
-  const units = [
-    { label: "Years",  value: time.years,  cls: "from-purple-600 to-purple-800" },
-    { label: "Months", value: time.months, cls: "from-purple-500 to-purple-700" },
-    { label: "Weeks",  value: time.weeks,  cls: "from-purple-400 to-purple-600" },
-    { label: "Days",   value: time.days,   cls: "from-yellow-500 to-yellow-600" },
-  ];
-  const urgency = time.totalDays < 90 ? "border-red-400 bg-red-50" : time.totalDays < 180 ? "border-orange-400 bg-orange-50" : "border-purple-200 bg-white";
-  return (
-    <div className={`mx-4 mt-4 mb-2 rounded-2xl shadow-xl border-2 overflow-hidden ${urgency}`}>
-      <div className="bg-gradient-to-r from-purple-900 to-purple-700 px-6 py-3 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-purple-200 text-xs font-semibold tracking-widest uppercase">Health Canada SUAP · Agreement #2425-HQ-000058</p>
-          <h2 className="text-white font-bold text-lg leading-tight">Leading the Way: PWLLE at the Forefront of Drug-Checking Initiatives</h2>
-        </div>
-        <div className="text-right">
-          <p className="text-purple-200 text-xs">Contract end date</p>
-          <p className="text-yellow-300 font-bold text-sm">March 31, 2028</p>
-        </div>
-      </div>
-      <div className="px-6 py-5">
-        {time.expired ? <p className="text-center text-2xl font-bold text-red-700 py-4">Project contract period has ended.</p> : (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-              {units.map(({ label, value, cls }) => (
-                <div key={label} className={`bg-gradient-to-br ${cls} rounded-xl p-4 text-center text-white shadow-md`}>
-                  <div className="text-4xl md:text-5xl font-extrabold leading-none tabular-nums">{value}</div>
-                  <div className="text-xs md:text-sm font-semibold mt-1 uppercase tracking-widest opacity-90">{label}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mb-1 flex justify-between text-xs text-gray-500 font-medium">
-              <span>Project Start: Jun 27, 2024</span>
-              <span className="text-purple-700 font-bold">{time.totalDays.toLocaleString()} calendar days remaining</span>
-              <span>Contract End: Mar 31, 2028</span>
-            </div>
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-purple-500 to-yellow-400 rounded-full" style={{ width: `${time.pct.toFixed(1)}%` }} />
-            </div>
-            <div className="mt-1 text-right text-xs text-gray-400">{time.pct.toFixed(1)}% of project period elapsed</div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-// ─── End ProjectCountdown ─────────────────────────────────────────────────────
-
-const ProjectPartnerDashboard = () => {
-  const [expandedMetrics, setExpandedMetrics] = useState({});
-  const [expandedRow, setExpandedRow] = useState(null);
+const ResearchDashboard = () => {
   const [showAnnouncement, setShowAnnouncement] = useState(true);
-
-  const toggleRow = (rowId) => setExpandedRow(expandedRow === rowId ? null : rowId);
-  const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-  const partnersData = [
-    { id: 1, nameOrganization: "Western University", address: "1151 Richmond Street", city: "London", prov: "ON", primaryContact: "Francois Lagugne-Labarthet, Primary Investigator", email1: "flagugne@uwo.ca", phone1: "519-661-2111 x81006", additionalContact: "Cameron Brown, Project Manager", email2: "cbrown58@uwo.ca", phone2: "226-238-9970", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 42.9849, lng: -81.2453, isLead: true },
-    { id: 2, nameOrganization: "Regional HIV/AIDS Connection (RHAC)", address: "446 York Street", city: "London", prov: "ON", primaryContact: "Lily Bialas, Interim Director of Harm Reduction", email1: "lbialas@hivaidsconnection.ca", phone1: "226-377-8721", additionalContact: "Donovan Wiebe", email2: "DWiebe@hivaidsconnection.ca", phone2: "519-434-1601", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 42.9835, lng: -81.2497 },
-    { id: 3, nameOrganization: "Sandy Hill Community Health Centre", address: "221 Nelson Street", city: "Ottawa", prov: "ON", primaryContact: "Dean Dewar", email1: "ddewar@sandyhillchc.on.ca", phone1: "613-795-8985", additionalContact: "Fiona Miller", email2: "fmiller@sandyhillchc.on.ca", phone2: "613-277-8932", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 45.4215, lng: -75.6972 },
-    { id: 4, nameOrganization: "Ottawa Inner City Health", address: "5 Myrand Ave", city: "Ottawa", prov: "ON", primaryContact: "Louise Beaudoin", email1: "lbeaudoin@oich.ca", phone1: "613-797-7514", additionalContact: "Chad Bouthillier", email2: "cbouthillier@oich.ca", phone2: "613-709-9656", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 45.4235, lng: -75.6919 },
-    { id: 5, nameOrganization: "Lower Mainland Purpose Society", address: "40 Begbie Street", city: "New Westminster", prov: "BC", primaryContact: "Lynda Fletcher-Gordon", email1: "lyndafg@purposesociety.org", phone1: "604-526-2522", additionalContact: "Jasmine Kaur", email2: "jasmine.kaur@purposesociety.org", phone2: "236-883-5584", devicesAssigned: "1", exemptionType1: "Mobile", exemptionType2: "NA", lat: 49.2057, lng: -122.9110 },
-    { id: 6, nameOrganization: "County of Grey", address: "595 9th Avenue East", city: "Owen Sound", prov: "ON", primaryContact: "Kevin McNab", email1: "kevin.mcnab@grey.ca", phone1: "519-379-0279", additionalContact: "Teresa Tibbo", email2: "Teresa.Tibbo@grey.ca", phone2: "519-379-8743", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "Mobile", lat: 44.5667, lng: -80.9333 },
-    { id: 7, nameOrganization: "Guelph Community Health Centre", address: "176 Wyndham Street North", city: "Guelph", prov: "ON", primaryContact: "Lindsey Sodtke", email1: "lsodtke@guephchc.ca", phone1: "519-821-6638 Ext302", additionalContact: "Cristiane Kraft", email2: "ckraft@guelphchc.ca", phone2: "519-821-6638 Ext341", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 43.5448, lng: -80.2482 },
-    { id: 8, nameOrganization: "Sanguen Health Centre", address: "150 Duke Street West", city: "Kitchener", prov: "ON", primaryContact: "Leigh Wardlaw", email1: "l.wardlaw@sanguen.com", phone1: "226-789-5250", additionalContact: "Violet Umanetz", email2: "v.umanetz@sanguen.com", phone2: "519-547-7222", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "Mobile", lat: 43.4516, lng: -80.4925 },
-    { id: 9, nameOrganization: "Moyo Health", address: "7700 Hurontario St. #601", city: "Brampton", prov: "ON", primaryContact: "Jillian Watkins", email1: "jillianw@moyohcs.ca", phone1: "905-361-0523 x215", additionalContact: "Adam Chalcraft", email2: "adamc@moyohcs.ca", phone2: "905-781-0223", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 43.7315, lng: -79.7624 },
-    { id: 10, nameOrganization: "Hamilton Urban Core Community Health Centre", address: "430 Cannon Street East", city: "Hamilton", prov: "ON", primaryContact: "Dr. Sandy Ezepue, Executive Director", email1: "ezepues@hucchc.com", phone1: "905-522-3233 Ext246", additionalContact: "Wilson Lapointe", email2: "wlapointe@hucchc.com", phone2: "TBD", devicesAssigned: "1", exemptionType1: "Mobile", exemptionType2: "NA", lat: 43.2557, lng: -79.8711 },
-    { id: 11, nameOrganization: "Positive Living Niagara", address: "120 Queenston St", city: "St. Catharines", prov: "ON", primaryContact: "Talia Storm, Director of StreetWorks Services", email1: "tstorm@positivelivingniagara.com", phone1: "905-984-8684 Ext128", additionalContact: "Myrtle Stage, CTS Supervisor", email2: "mstage@positivelivingniagara.com", phone2: "905-984-8684 Ext312", devicesAssigned: "2", exemptionType1: "Non-Mobile", exemptionType2: "Mobile", lat: 43.1594, lng: -79.2469, hasBothExemptions: true },
-    { id: 12, nameOrganization: "Ensemble Moncton", address: "80 Weldon Street", city: "Moncton", prov: "NB", primaryContact: "Scott Phipps", email1: "sphipps@ensemblegm.ca", phone1: "506-859-9616", additionalContact: "Josue Goguen", email2: "jgoguen@ensemblegm.ca", phone2: "506-227-6416", devicesAssigned: "2", exemptionType1: "Non-Mobile", exemptionType2: "Mobile", lat: 46.0878, lng: -64.7782, hasBothExemptions: true },
-    { id: 13, nameOrganization: "Prairie Harm Reduction", address: "1516 20th St W", city: "Saskatoon", prov: "SK", primaryContact: "Kayla DeMong", email1: "admin@prairiehr.ca", phone1: "306-242-5005 Ext 4", additionalContact: "Julene Rawson", email2: "operations@prairiehr.ca", phone2: "306-242-5005 Ext4", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 52.1332, lng: -106.6700 },
-    { id: 14, nameOrganization: "Cochrane District Paramedic Service", address: "500 Algonquin Blvd East", city: "Timmins", prov: "ON", primaryContact: "Seamus Murphy", email1: "seamus.murphy@cdsb.care", phone1: "705-268-772 x296", additionalContact: "Chantal Riva", email2: "Chantal.riva@cdsb.care", phone2: "705-268-722 x150", devicesAssigned: "1", exemptionType1: "Mobile", exemptionType2: "NA", lat: 48.4758, lng: -81.3304 },
-    { id: 15, nameOrganization: "Renfrew Paramedic Services", address: "450 O'Brien Rd", city: "Renfrew", prov: "ON", primaryContact: "Stephanie Rose", email1: "SRose@countyofrenfrew.on.ca", phone1: "613-818-9813", additionalContact: "Kaylie Kuehl, Community Paramedicine Program Clinical Coordinator", email2: "KKuehl@countyofrenfrew.on.ca", phone2: "613-818-9813", devicesAssigned: "1", exemptionType1: "Mobile", exemptionType2: "NA", lat: 45.4729, lng: -76.6867 },
-    { id: 16, nameOrganization: "Peterborough AIDS Resource Network", address: "60 Hunter St E 2nd Floor", city: "Peterborough", prov: "ON", primaryContact: "Dane Record", email1: "executivedirector@parn.ca", phone1: "705-559-0656", additionalContact: "Aizha Polluck", email2: "aizha@parn.ca", phone2: "705-749-9110 Ext206", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 44.3091, lng: -78.3197 },
-    { id: 17, nameOrganization: "Travailderue", address: "221 Rue Tessier", city: "Chicoutimi", prov: "QC", primaryContact: "Stephanie Bouchard", email1: "stephanie.bouchard@strchic.com", phone1: "418-545-0999", additionalContact: "Janick Meunier", email2: "janick.meunier@strchic.com", phone2: "418-545-0999", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 48.4284, lng: -71.0649 },
-    { id: 18, nameOrganization: "NHC Society", address: "76 Esplanade", city: "Truro", prov: "NS", primaryContact: "Albert McNutt, Executive Director", email1: "super@nhcsociety.ca", phone1: "902-895-0931", additionalContact: "TBD", email2: "TBD", phone2: "902-324-7201", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 45.3669, lng: -63.2755 },
-    { id: 19, nameOrganization: "Breakaway", address: "21 Strickland Ave", city: "Toronto", prov: "ON", primaryContact: "Ruben Tarajano", email1: "Rubent@breakawaycs.ca", phone1: "647-883-1135", additionalContact: "Angie Porter", email2: "AngieP@breakawaycs.ca", phone2: "416-537-9346 Ext235", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 43.6532, lng: -79.3832 },
-    { id: 20, nameOrganization: "AIDS New Brunswick", address: "354 King St", city: "Fredericton", prov: "NB", primaryContact: "Linda Thompson-Brown", email1: "linda@aidsnb.com", phone1: "506-455-2625", additionalContact: "Jess Gionet", email2: "Jess.gionet@aidsnb.com", phone2: "506-478-4765", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 45.9636, lng: -66.6431 },
-    { id: 21, nameOrganization: "Avenue B Harm Reduction Inc.", address: "62 Waterloo St", city: "Saint John", prov: "NB", primaryContact: "Laura MacNeill", email1: "laura.macneill@avenueb.ca", phone1: "506-652-2437", additionalContact: "Allie Myles", email2: "allie.myles@avenueb.ca", phone2: "506-652-2437", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "Mobile", lat: 45.2733, lng: -66.0633 },
-    { id: 22, nameOrganization: "Boyle Street Service Society", address: "10740 99 St NW", city: "Edmonton", prov: "AB", primaryContact: "Sindi Addorisio", email1: "saddorisio@boylestreet.org", phone1: "587-340-2985", additionalContact: "Alyssa Miller", email2: "amiller@boylestreet.org", phone2: "780-424-4106", devicesAssigned: "1", exemptionType1: "Non-Mobile", exemptionType2: "NA", lat: 53.5461, lng: -113.4938 }
-  ];
-
-  const getSitesByProvince = () => {
-    const byProvince = {};
-    partnersData.forEach(site => { if (!byProvince[site.prov]) byProvince[site.prov] = []; byProvince[site.prov].push(site.nameOrganization); });
-    return byProvince;
-  };
-
-  const sitesByProvince = getSitesByProvince();
-  const getMobileSites = () => partnersData.filter(site => site.exemptionType1 === "Mobile" || site.exemptionType2 === "Mobile");
-  const getNonMobileSites = () => partnersData.filter(site => site.exemptionType1 === "Non-Mobile" || site.exemptionType2 === "Non-Mobile");
-  const getStatistics = () => {
-    const provinces = [...new Set(partnersData.map(s => s.prov))];
-    const totalDevices = partnersData.reduce((sum, s) => sum + parseInt(s.devicesAssigned), 0);
-    return { totalPartners: partnersData.length, provinces, totalDevices, mobileSites: getMobileSites(), nonMobileSites: getNonMobileSites() };
-  };
-  const stats = getStatistics();
-
-  const ProjectTimeline = () => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const today = new Date();
-    const fy1End = new Date('2025-03-31'), fy2End = new Date('2026-03-31'), fy3End = new Date('2027-03-31'), projectEnd = new Date('2028-03-31');
-    let fyNumber, fyProgress;
-    if (today <= fy1End) { fyNumber = 0; fyProgress = (today - new Date('2024-04-01')) / (fy1End - new Date('2024-04-01')); }
-    else if (today <= fy2End) { fyNumber = 1; fyProgress = (today - new Date('2025-04-01')) / (fy2End - new Date('2025-04-01')); }
-    else if (today <= fy3End) { fyNumber = 2; fyProgress = (today - new Date('2026-04-01')) / (fy3End - new Date('2026-04-01')); }
-    else { fyNumber = 3; fyProgress = (today - new Date('2027-04-01')) / (projectEnd - new Date('2027-04-01')); }
-    const progressPercent = Math.min(Math.max(((fyNumber + fyProgress) / 4) * 100, 0), 100);
-    const currentYear = today.getFullYear();
-    const dayOfYear = Math.floor((today - new Date(currentYear, 0, 1)) / (1000 * 60 * 60 * 24)) + 1;
-    const daysInYear = ((currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0) ? 366 : 365;
-    // Timeline spans 2022–2028 (6 years). Calculate exact position.
-    const timelineStart = new Date('2022-01-01');
-    const timelineEnd = new Date('2028-12-31');
-    const hcProgressPercent = Math.min(98, Math.max(2, ((today - timelineStart) / (timelineEnd - timelineStart)) * 100));
-    const formatDate = (d) => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    const challengeUrl = "https://impact.canada.ca/en/challenges/drug-checking-challenge";
-    return (
-      <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 cursor-pointer flex items-center justify-between" onClick={() => setIsExpanded(!isExpanded)}>
-          <h2 className="flex items-center gap-2 font-bold text-2xl"><Clock size={28} />Project Background & Timeline</h2>
-          <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-lg">
-            <span className="text-sm font-medium">{isExpanded ? 'Collapse' : 'Expand'}</span>
-            {isExpanded ? <ChevronUp size={28} strokeWidth={2.5} /> : <ChevronDown size={28} strokeWidth={2.5} />}
-          </div>
-        </div>
-        {isExpanded && <div className="p-6 bg-gradient-to-br from-white to-purple-50">
-          <div className="mb-8">
-            <h3 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">Drug Checking Technology Challenge (2018-2021)<a href={challengeUrl} target="_blank" rel="noopener noreferrer" className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm hover:bg-purple-700 flex items-center gap-1">Learn More <ExternalLink size={14} /></a></h3>
-            <div className="relative">
-              <div className="absolute top-1/2 left-0 right-0 h-2 bg-gradient-to-r from-purple-400 via-purple-600 to-purple-800 transform -translate-y-1/2"></div>
-              <div className="relative flex justify-between items-center py-8">
-                <div className="flex flex-col items-center"><div className="bg-purple-600 text-white font-bold text-lg px-4 py-2 rounded-full shadow-lg mb-2 flex items-center gap-1">2018 <Check size={16} className="text-green-300" /></div><div className="w-5 h-5 bg-purple-600 rounded-full border-4 border-white shadow-lg"></div><div className="mt-4 bg-gradient-to-br from-purple-100 to-purple-200 p-3 rounded-xl shadow-lg border-2 border-purple-300 max-w-[180px] text-center"><div className="font-bold text-purple-900 text-sm">Challenge Launched</div><div className="text-xs text-purple-700 mt-1">October 2018</div><div className="text-xs text-purple-600">Health Canada</div></div></div>
-                <div className="flex flex-col items-center"><div className="mb-4 bg-gradient-to-br from-purple-100 to-purple-200 p-3 rounded-xl shadow-lg border-2 border-purple-300 max-w-[150px] text-center"><div className="font-bold text-purple-900 text-sm">Application Deadline</div></div><div className="w-5 h-5 bg-purple-500 rounded-full border-4 border-white shadow-lg"></div><div className="bg-purple-500 text-white font-bold text-lg px-4 py-2 rounded-full shadow-lg mt-2 flex items-center gap-1">2019 <Check size={16} className="text-green-300" /></div></div>
-                <div className="flex flex-col items-center"><div className="bg-purple-500 text-white font-bold text-lg px-4 py-2 rounded-full shadow-lg mb-2 flex items-center gap-1">2020 <Check size={16} className="text-green-300" /></div><div className="w-5 h-5 bg-purple-500 rounded-full border-4 border-white shadow-lg"></div><div className="mt-4 bg-gradient-to-br from-purple-100 to-purple-200 p-3 rounded-xl shadow-lg border-2 border-purple-300 max-w-[150px] text-center"><div className="font-bold text-purple-900 text-sm">Pilot-Phase</div></div></div>
-                <div className="flex flex-col items-center"><div className="mb-4 bg-gradient-to-br from-yellow-100 to-yellow-200 p-3 rounded-xl shadow-lg border-2 border-yellow-400 max-w-[220px] text-center"><div className="flex items-center justify-center gap-1 mb-1"><Trophy className="text-yellow-600" size={16} /><span className="font-bold text-yellow-800 text-sm">Scatr Wins!</span></div><div className="text-xs text-yellow-700">$1,000,000 Prize</div></div><div className="w-6 h-6 bg-yellow-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center"><Trophy className="text-white" size={12} /></div><div className="bg-purple-700 text-white font-bold text-lg px-4 py-2 rounded-full shadow-lg mt-2 flex items-center gap-1">2021 <Check size={16} className="text-green-300" /></div></div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-8 mb-8">
-            <h3 className="text-xl font-bold text-purple-900 mb-4">Health Canada Contribution Agreements w/ Western University (2022-2028)</h3>
-            <div className="relative pt-12">
-              <div className="absolute top-0 flex flex-col items-center z-10" style={{ left: `${hcProgressPercent}%`, transform: 'translateX(-50%)' }}>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white px-2 py-1 rounded-lg shadow-lg text-xs font-bold whitespace-nowrap">We Are Here</div>
-                <div className="text-xs text-green-700 font-medium whitespace-nowrap">{formatDate(today)}</div>
-                <div className="w-1 h-6 bg-green-500 mt-1"></div>
-              </div>
-              <div className="absolute top-12 left-0 right-0 h-2 bg-gradient-to-r from-purple-400 via-purple-600 to-purple-800"></div>
-              <div className="relative flex justify-between items-start pt-8" style={{ marginTop: '8px' }}>
-                <div className="flex flex-col items-center"><div className="bg-purple-600 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg mb-2">2022</div><div className="w-5 h-5 bg-purple-600 rounded-full border-4 border-white shadow-lg"></div><div className="mt-4 bg-gradient-to-br from-purple-100 to-purple-200 p-3 rounded-xl shadow-lg border-2 border-purple-300 max-w-[220px] text-center"><div className="font-bold text-purple-900 text-sm">Phase #1</div><div className="text-xs text-purple-600 mt-1">Creating a Drug Checking Network Using ML Enabled Spectrometers</div></div></div>
-                <div className="flex flex-col items-center"><div className="bg-purple-500 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg mb-2">2023</div><div className="w-4 h-4 bg-purple-500 rounded-full border-4 border-white shadow-lg"></div></div>
-                <div className="flex flex-col items-center"><div className="mb-2 bg-gradient-to-br from-purple-200 to-purple-300 p-3 rounded-xl shadow-lg border-2 border-purple-400 max-w-[220px] text-center"><div className="font-bold text-purple-900 text-sm">Phase #2</div><div className="text-xs text-purple-600 mt-1">Leading the Way: PWLLE at the Forefront</div></div><div className="w-5 h-5 bg-purple-600 rounded-full border-4 border-white shadow-lg"></div><div className="bg-purple-600 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg mt-2">2024</div></div>
-                <div className="flex flex-col items-center"><div className="bg-purple-500 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg mb-2">2025</div><div className="w-4 h-4 bg-purple-500 rounded-full border-4 border-white shadow-lg"></div></div>
-                <div className="flex flex-col items-center"><div className="bg-purple-500 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg mb-2">2026</div><div className="w-4 h-4 bg-purple-500 rounded-full border-4 border-white shadow-lg"></div></div>
-                <div className="flex flex-col items-center"><div className="bg-purple-500 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg mb-2">2027</div><div className="w-4 h-4 bg-purple-500 rounded-full border-4 border-white shadow-lg"></div></div>
-                <div className="flex flex-col items-center"><div className="bg-purple-800 text-white font-bold text-sm px-3 py-1 rounded-full shadow-lg mb-2">2028</div><div className="w-5 h-5 bg-purple-800 rounded-full border-4 border-white shadow-lg"></div><div className="mt-4 bg-gradient-to-br from-purple-100 to-purple-200 p-2 rounded-xl shadow-lg border-2 border-purple-300 max-w-[100px] text-center"><div className="font-bold text-purple-900 text-xs">Project End</div><div className="text-xs text-purple-600">Mar 31, 2028</div></div></div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-24">
-            <h3 className="text-xl font-bold text-purple-900 mb-4">Phase #2 (CURRENT) Project Fiscal Years (April 1, 2024 - March 31, 2028)</h3>
-            <div className="relative pt-16 pb-8">
-              <div className="absolute top-0 flex flex-col items-center z-10" style={{ left: `${progressPercent}%`, transform: 'translateX(-50%)' }}>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white px-3 py-1.5 rounded-lg shadow-lg text-sm font-bold whitespace-nowrap">We Are Here</div>
-                <div className="text-xs text-green-700 font-medium mt-1 whitespace-nowrap">{formatDate(today)}</div>
-                <div className="w-1 h-8 bg-green-500 mt-1"></div>
-              </div>
-              <div className="relative h-16 bg-gray-200 rounded-full overflow-hidden shadow-inner mt-8">
-                <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-l-full" style={{ width: `${progressPercent}%` }}></div>
-                <div className="absolute inset-0 flex">
-                  {['Fiscal Year 1\nApr 1, 2024 - Mar 31, 2025','Fiscal Year 2\nApr 1, 2025 - Mar 31, 2026','Fiscal Year 3\nApr 1, 2026 - Mar 31, 2027','Fiscal Year 4\nApr 1, 2027 - Mar 31, 2028'].map((fy, i) => (
-                    <div key={i} className={`flex-1 ${i < 3 ? 'border-r-2 border-white' : ''} flex items-center justify-center`}>
-                      <div className="text-center">
-                        <div className="font-bold text-purple-900 text-sm">{fy.split('\n')[0]}</div>
-                        <div className="text-xs text-purple-700">{fy.split('\n')[1]}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-between mt-2">
-                <div className="text-center"><div className="font-bold text-purple-800 text-sm">Start</div><div className="text-xs text-purple-600">April 1, 2024</div></div>
-                <div className="text-center"><div className="font-bold text-purple-800 text-sm">End</div><div className="text-xs text-purple-600">March 31, 2028</div></div>
-              </div>
-            </div>
-          </div>
-        </div>}
-      </div>
-    );
-  };
-
-  const SiteDetails = ({ site }) => (
-    <div className="text-sm space-y-1">
-      <div className="font-bold text-purple-900 text-base mb-2">{site.nameOrganization}</div>
-      <div><span className="font-semibold">Address:</span> {site.address}, {site.city}, {site.prov}</div>
-      <div><span className="font-semibold">Primary Contact:</span> {site.primaryContact}</div>
-      <div><span className="font-semibold">Email:</span> {site.email1}</div>
-      <div><span className="font-semibold">Phone:</span> {site.phone1}</div>
-      <div><span className="font-semibold">Additional Contact:</span> {site.additionalContact}</div>
-      <div><span className="font-semibold">Email:</span> {site.email2}</div>
-      <div><span className="font-semibold">Phone:</span> {site.phone2}</div>
-      <div><span className="font-semibold">Devices Assigned:</span> {site.devicesAssigned}</div>
-      <div><span className="font-semibold">Exemption Type #1:</span> {site.exemptionType1}</div>
-      {site.exemptionType2 !== "NA" && <div><span className="font-semibold">Exemption Type #2:</span> {site.exemptionType2}</div>}
-    </div>
-  );
-
-  const MapView = () => (
-    <div className="h-[600px] rounded-xl overflow-hidden shadow-2xl border-4 border-purple-200 relative">
-      <MapContainer center={[52.0, -95.0]} zoom={4} style={{ height: '100%', width: '100%' }}>
-        <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <ResetMapButton />
-        {partnersData.map((site) => (
-          <Marker key={site.id} position={[site.lat, site.lng]}>
-            <Tooltip permanent direction="top" offset={[0, -10]} className="font-semibold text-xs">{site.nameOrganization.length > 25 ? site.nameOrganization.substring(0, 22) + '...' : site.nameOrganization}</Tooltip>
-            <Popup maxWidth={350}><SiteDetails site={site} /></Popup>
-          </Marker>
-        ))}
-      </MapContainer>
-    </div>
-  );
-
-  const TableView = () => (
-    <div className="space-y-4">
-      <div className="overflow-x-auto rounded-xl shadow-2xl border-4 border-purple-200">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gradient-to-r from-purple-700 to-purple-900 text-white">
-              <th className="border border-purple-300 p-2 text-left font-bold">Name/Organization</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Address</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">City</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Prov</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Primary Contact</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Email</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Phone</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Additional Contact</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Email</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Phone</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Devices</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Type #1</th>
-              <th className="border border-purple-300 p-2 text-left font-bold">Type #2</th>
-            </tr>
-          </thead>
-          <tbody>
-            {partnersData.map((site, idx) => (
-              <tr key={site.id} onClick={() => toggleRow(site.id)} className={`cursor-pointer transition-all duration-200 ${expandedRow === site.id ? 'bg-purple-200 scale-[1.02] shadow-lg z-10 relative' : site.isLead ? 'bg-purple-200 border-4 border-purple-600' : idx % 2 === 0 ? 'bg-purple-50 hover:bg-purple-100' : 'bg-white hover:bg-purple-50'}`}>
-                <td className={`border border-purple-200 p-2 font-bold text-purple-900 ${expandedRow === site.id ? 'text-base py-4' : ''}`}>{site.nameOrganization}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.address}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.city}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.prov}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.primaryContact}</td>
-                <td className={`border border-purple-200 p-2 text-blue-700 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.email1}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.phone1}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.additionalContact}</td>
-                <td className={`border border-purple-200 p-2 text-blue-700 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.email2}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.phone2}</td>
-                <td className={`border border-purple-200 p-2 font-bold text-center ${expandedRow === site.id ? 'py-4' : ''}`}>{site.devicesAssigned}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.exemptionType1}</td>
-                <td className={`border border-purple-200 p-2 ${expandedRow === site.id ? 'py-4' : ''}`}>{site.exemptionType2}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-gray-500 text-center italic">Click on any row to expand for easier viewing</p>
-    </div>
-  );
-
-  const ResearchDocuments = () => (
-    <div className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4">
-        <h2 className="flex items-center gap-2 font-bold text-2xl"><FileText size={28} />Research, Ethics & Exemptions Documents</h2>
-      </div>
-      <div className="p-6 bg-gradient-to-br from-white to-purple-50 space-y-6">
-        <div className="bg-gradient-to-br from-red-50 to-white p-4 rounded-xl border-2 border-red-200">
-          <h3 className="font-bold text-lg text-red-900 mb-3 flex items-center gap-2"><AlertTriangle size={18} className="text-red-600" />Policy & Announcements</h3>
-          <div className="space-y-2">
-            <a href="/SCS-Closure-Information-Mar2026.pdf" target="_blank" className="flex items-center gap-2 text-red-700 hover:text-red-900 text-sm p-2 bg-white rounded border border-red-200 hover:bg-red-50"><Download size={16} />Ontario CTS Funding Announcement — Drug-Checking Partner Information Document (March 17, 2026)</a>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-xl border-2 border-purple-200">
-          <h3 className="font-bold text-lg text-purple-900 mb-3">Research</h3>
-          <div className="space-y-2">
-            <a href="/SOP-Sample-Preparation.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Standard Operating Procedures for Sample Preparation (PDF)</a>
-            <a href="/Scatr-Results-FAQ.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Scatr Results Explanation Document (PDF)</a>
-            <a href="/Scatr-LOD-Study.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Scatr Series One LOD Study (PDF)</a>
-            <a href="/Scatr-Technical-Research-Strategy.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Scatr Technical Research Strategy (PDF)</a>
-            <a href="/Canadian-Substance-Use-Costs-Harms-2007-2020.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Canadian Substance Use Costs and Harms Report 2007-2020 (PDF)</a>
-            <a href="/CIHR-SCS-Operational-Guidance-2023.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />National Operational Guidance for Supervised Consumption Services - CIHR July 2023 (PDF)</a>
-            <a href="/CAPSA-Annual-Report-2023-2024.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Community Addictions Peer Support Association (CAPSA). Annual Report 2023-2024 (PDF)</a>
-            <a href="/Ontario-CCRA-2024.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Ontario Community Care and Recovery Act 2024 (PDF)</a>
-            <a href="/Canadian-Drugs-Substances-Strategy-2023.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Government of Canada. The Canadian Drugs and Substances Strategy 2023 (PDF)</a>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-xl border-2 border-purple-200">
-          <h3 className="font-bold text-lg text-purple-900 mb-3">Ethics</h3>
-          <div className="space-y-2">
-            <a href="/LOI-Phase1.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Drug-Checking Device Use - Letter of Information & Consent (PDF)</a>
-            <a href="/LOI-DCP-Training.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Drug-Checking Peer Training - Letter of Information & Consent (PDF)</a>
-            <a href="/DCP-Survey.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Drug-Checking Peer Training - Pre- and Post-Surveys (PDF)</a>
-            <a href="/DCP-Certificate-Example.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Drug-Checking Peer Training - Example Certificate of Achievement (PDF)</a>
-            <a href="/Collaborative-Site-Agreement.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Collaborative Site Agreement - Example Template (PDF)</a>
-            <a href="/DCP-Invoice-Template.docx" download className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />DCP Training &amp; Certification — Invoice Submission Package (Word)</a>
-          </div>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-xl border-2 border-purple-200">
-          <h3 className="font-bold text-lg text-purple-900 mb-3">Exemptions</h3>
-          <div className="space-y-2">
-            <a href="/Exemption-56-Template.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Exemption 56 Approved - Redacted Template (PDF)</a>
-            <a href="/Exemption-56-Blank.pdf" target="_blank" className="flex items-center gap-2 text-purple-700 hover:text-purple-900 text-sm p-2 bg-white rounded border border-purple-200 hover:bg-purple-50"><Download size={16} />Exemption 56 Application - Blank Template (PDF)</a>
-          </div>
-        </div>
-        <p className="text-xs text-gray-500 italic">Click to view or download PDF documents</p>
-      </div>
-    </div>
-  );
-
-  const linksData = [
-    { title: "Western University News: Health Canada Grant", url: "https://news.westernu.ca/2023/04/health-canada-grant-funds-innovative-drug-checking-technology/", description: "Chemistry professor Francois Lagugné-Labarthet teams up with Scatr Inc. to pilot drug-checking technology.", category: "Western University" },
-    { title: "FLL Group Bio", url: "https://publish.uwo.ca/~flagugne/#about", description: "Principal Investigator's research group at Western University.", category: "Western University" },
-    { title: "Scatr Portal (Partner Login)", url: "https://scatr.ca/auth", description: "Secure login for partners to access the drug-checking data management system.", category: "Scatr Inc." },
-    { title: "Scatr Live Dashboard", url: "https://scatr.live/", description: "Public dashboard with real-time drug-checking results across the network.", category: "Scatr Inc." },
-    { title: "Grand Prize Winner Announcement", url: "https://www.canada.ca/en/health-canada/news/2021/07/government-of-canada-announces-the-grand-prize-winner-of-the-drug-checking-technology-challenge.html", description: "Health Canada announces Scatr Inc. as the $1 million grand prize winner.", category: "Scatr Inc." },
-    { title: "Impact Canada - Drug Checking Challenge", url: "https://impact.canada.ca/en/challenges/drug-checking-challenge", description: "Official Government of Canada page for the Drug Checking Technology Challenge.", category: "Scatr Inc." },
-    { title: "Regional HIV/AIDS Connection (RHAC)", url: "https://www.hivaidsconnection.ca/carepoint", description: "London's Carepoint supervised consumption and harm reduction service — project partner site.", category: "Project Partners" },
-    { title: "Sandy Hill Community Health Centre", url: "https://www.sandyhillchc.on.ca/", description: "Ottawa community health centre — project partner site.", category: "Project Partners" },
-    { title: "Ottawa Inner City Health", url: "https://oich.ca/", description: "Ottawa inner city health services — project partner site.", category: "Project Partners" },
-    { title: "Lower Mainland Purpose Society", url: "https://www.purposesociety.org/", description: "New Westminster, BC harm reduction and community services — project partner site.", category: "Project Partners" },
-    { title: "County of Grey — Public Health", url: "https://www.grey.ca/health-community-services/public-health", description: "Owen Sound, ON public health services — project partner site.", category: "Project Partners" },
-    { title: "Guelph Community Health Centre", url: "https://www.guelphchc.ca/", description: "Guelph, ON community health and harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "Sanguen Health Centre — Drug Checking", url: "https://www.sanguen.com/drug-checking", description: "Drug checking services at Sanguen Health Centre, Kitchener — project partner site.", category: "Project Partners" },
-    { title: "Moyo Health & Community Services", url: "https://moyohcs.ca/", description: "Brampton, ON community health and harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "Hamilton Urban Core Community Health Centre", url: "https://hucchc.com/", description: "Hamilton, ON community health and harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "Positive Living Niagara", url: "https://www.positivelivingniagara.com/", description: "St. Catharines, ON HIV/AIDS and harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "Ensemble Moncton", url: "https://www.ensemblegm.ca/", description: "Moncton, NB harm reduction and supervised consumption services — project partner site.", category: "Project Partners" },
-    { title: "Prairie Harm Reduction", url: "https://prairiehr.ca/", description: "Saskatoon, SK harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "Cochrane District Services Board (CDSB)", url: "https://www.cdsb.care/", description: "Timmins, ON paramedic and community services — project partner site.", category: "Project Partners" },
-    { title: "Renfrew County & District Health Unit", url: "https://www.rcdhu.com/", description: "Renfrew, ON public health and paramedic services — project partner site.", category: "Project Partners" },
-    { title: "Peterborough AIDS Resource Network (PARN)", url: "https://www.parn.ca/", description: "Peterborough, ON HIV/AIDS and harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "Travail de rue de Chicoutimi", url: "https://www.travailderue-chicoutimi.org/", description: "Chicoutimi, QC community outreach and harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "NHC Society (Northern Healthy Connections)", url: "https://nhcsociety.ca/", description: "Truro, NS harm reduction and community health services — project partner site.", category: "Project Partners" },
-    { title: "Breakaway Community Services", url: "https://www.breakawaycs.ca/", description: "Toronto, ON harm reduction and social services — project partner site.", category: "Project Partners" },
-    { title: "AIDS New Brunswick", url: "https://www.aidsnb.com/", description: "Fredericton, NB HIV/AIDS and harm reduction services — project partner site.", category: "Project Partners" },
-    { title: "Avenue B Harm Reduction", url: "https://avenueb.ca/", description: "Saint John, NB harm reduction and HIV/AIDS services — project partner site.", category: "Project Partners" },
-    { title: "Boyle Street Community Services", url: "https://www.boylestreet.org/", description: "Edmonton, AB community services and harm reduction — project partner site.", category: "Project Partners" },
-    { title: "Health Canada - SUAP Active Projects", url: "https://www.canada.ca/en/health-canada/services/substance-use/canadian-drugs-substances-strategy/funding/substance-use-addictions-program/active-projects.html", description: "List of active projects funded through the Substance Use and Addictions Program.", category: "Health Canada" },
-    { title: "Health Canada - Office of Controlled Substances", url: "https://www.canada.ca/en/health-canada/corporate/contact-us/office-controlled-substances.html", description: "Contact information for Health Canada's Office of Controlled Substances.", category: "Health Canada" },
-    { title: "Health Canada - Opioid/Stimulant Harms", url: "https://health-infobase.canada.ca/substance-related-harms/opioids-stimulants/", description: "Latest statistics on opioid and stimulant-related harms in Canada.", category: "Health Canada" },
-    { title: "Health Canada - SCS Statistics", url: "https://www.canada.ca/en/health-canada/services/substance-use/supervised-consumption-sites/status-application.html", description: "Federal statistics on supervised consumption sites in Canada.", category: "Health Canada" },
-    { title: "BCCSU Drug Checking", url: "https://drugcheckingbc.ca/", description: "BC Centre on Substance Use drug checking program information.", category: "Other" },
-    { title: "CCSA - Drug Checking", url: "https://www.ccsa.ca/drug-checking", description: "Canadian Centre on Substance Use resources on drug checking.", category: "Other" },
-    { title: "CCRA 2024 Legislation", url: "https://www.ontario.ca/laws/statute/24c27", description: "Full text of Ontario's Community Care and Recovery Act.", category: "Other" },
-    { title: "CATIE - Harm Reduction Toolkit", url: "https://www.catie.ca/harm-reduction-fundamentals-a-toolkit-for-service-providers", description: "Comprehensive toolkit for implementing harm reduction approaches.", category: "Other" },
-    { title: "CSUCH - Costs and Harms Reports", url: "https://csuch.ca/publications/substance-use-costs-and-harms/", description: "Reports on economic and health burden of substance use.", category: "Other" },
-    { title: "Harm Reduction Journal", url: "https://harmreductionjournal.biomedcentral.com/", description: "Open-access journal on harm reduction approaches to drug use.", category: "Other" },
-  ];
-
-  const RelatedLinks = () => {
-    const categories = ['Western University', 'Scatr Inc.', 'Project Partners', 'Health Canada', 'Other'];
-    return (
-      <div className="bg-white rounded-2xl shadow-2xl p-6 border-4 border-purple-100">
-        <div className="flex items-center gap-3 mb-6"><ExternalLink className="text-purple-700" size={32} /><h2 className="font-bold text-2xl text-purple-900">Related Links & Resources</h2></div>
-        <div className="space-y-6">
-          {categories.map((category) => {
-            const categoryLinks = linksData.filter(link => link.category === category);
-            if (categoryLinks.length === 0) return null;
-            return (
-              <div key={category} className="bg-gradient-to-br from-purple-50 to-white p-4 rounded-xl border-2 border-purple-200">
-                <h3 className="font-bold text-lg text-purple-900 mb-3">{category}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {categoryLinks.map((link, idx) => (
-                    <div key={idx} className="bg-white p-3 rounded-lg border border-purple-200 hover:shadow-lg transition-shadow">
-                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:text-purple-900 font-bold flex items-center gap-2 mb-1 text-sm">{link.title} <ExternalLink size={14} /></a>
-                      <p className="text-xs text-gray-600">{link.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
+  const todayFormatted = new Date().toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' });
+  const stats = networkStats();
   return (
     <div className="min-h-screen bg-white" id="top">
+      <SkipLink />
       <BackToTop />
-      {showAnnouncement && <AnnouncementBanner onDismiss={() => setShowAnnouncement(false)} />}
-      <div className="bg-white shadow-lg">
-        <div className="px-8 py-8">
-          <div className="flex items-stretch gap-8">
-            <img src="/western-logo.png" alt="Western University" style={{height: '365px', width: 'auto'}} />
+      {showAnnouncement && <AnnouncementBanner config={ANNOUNCEMENT_CONFIG} onDismiss={() => setShowAnnouncement(false)} />}
+      <header className="bg-white shadow-lg">
+        <div className="px-4 sm:px-8 py-6 sm:py-8">
+          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
+            <img src="/western-logo.png" alt="Western University" className="h-32 sm:h-44 lg:h-56 w-auto self-start md:self-center" />
             <div className="flex flex-col justify-center">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight">A Novel Concurrent Two Phase<br />Drug-Checking Initiative</h1>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight">A Novel Concurrent Two Phase<br />Drug-Checking Initiative</h1>
               <div className="border-b-2 border-gray-300 my-2"></div>
-              <p className="text-lg md:text-xl text-black font-medium">Contribution Agreement Funding Provided by Health Canada's Substance Use and Addictions Program (SUAP)</p>
+              <p className="text-base sm:text-lg md:text-xl text-black font-medium">Research Personnel Dashboard · Health Canada SUAP Agreement #2425-HQ-000058</p>
               <p className="text-base mt-1">In partnership with <a href="https://scatr.ca/" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold hover:text-blue-800 hover:underline">Scatr Inc.</a></p>
+              <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                {[
+                  [stats.signedPartners, 'Partner organizations'],
+                  [stats.deployedDevices, 'Spectrometers deployed'],
+                  [METRICS.totals.pocFiscalYearToDate.toLocaleString(), `Scans ${METRICS.fiscalYearNow}`],
+                  [METRICS.totals.pocAllTime.toLocaleString(), 'Scans all time'],
+                ].map(([v, l]) => (
+                  <div key={l} className="bg-purple-50 border border-purple-200 rounded-xl px-3 py-2"><dt className="text-xs text-purple-700 font-semibold uppercase tracking-wide">{l}</dt><dd className="text-2xl font-black text-purple-900">{v}</dd></div>
+                ))}
+              </dl>
             </div>
           </div>
         </div>
         <div className="h-24 bg-purple-800"></div>
-      </div>
-      <ProjectCountdown />
-      <div className="px-6 pt-6">
-        <div className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-2xl shadow-lg border-2 border-purple-200">
-          <h2 className="text-3xl font-bold text-purple-900 mb-6">Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-5 rounded-xl border-2 border-purple-300 shadow-md text-center"><h3 className="font-bold text-2xl text-purple-900 mb-3">Phase #1</h3><p className="text-gray-800 font-semibold mb-2">Creating a Drug Checking Network Using Machine Learning Enabled Spectrometers</p><p className="text-sm text-gray-600">Contribution Agreement_Arrangement # 2223-HQ-000095</p></div>
-            <div className="bg-white p-5 rounded-xl border-2 border-purple-300 shadow-md text-center"><h3 className="font-bold text-2xl text-purple-900 mb-3">Phase #2</h3><p className="text-gray-800 font-semibold mb-2">Leading the Way: PWLLE at the Forefront of Drug-Checking Initiatives</p><p className="text-sm text-gray-600">Amendment of Contribution Agreement_Arrangement # 2425-HQ-000058</p></div>
-          </div>
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full border-collapse bg-white rounded-xl overflow-hidden shadow-md">
-              <thead><tr className="bg-purple-100"><th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Organization</th><th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Project Name</th><th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Description</th><th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Substances</th><th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Location</th><th className="border border-gray-200 px-4 py-3 text-left text-sm font-bold text-purple-900">Funding</th></tr></thead>
-              <tbody><tr className="hover:bg-purple-50"><td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">University of Western Ontario</td><td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">Leading the Way: People with Lived and Living Experience at the Forefront of Drug-Checking Initiative</td><td className="border border-gray-200 px-4 py-3 text-sm text-gray-700 align-top">This initiative will integrate People with Lived and Living Experience (PWLLE) into drug-checking initiatives by training them in drug-checking technologies to enable them to implement drug-checking initiatives and training programs in participating harm reduction and public health centres in Alberta, Ontario, Manitoba and Nova Scotia.</td><td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">Multiple substances</td><td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top">London, Ontario</td><td className="border border-gray-200 px-4 py-3 text-sm text-gray-800 align-top font-medium">$4,473,473</td></tr></tbody>
-            </table>
-            <p className="text-xs text-gray-500 mt-2 text-right">Source: <a href="https://www.canada.ca/en/health-canada/services/substance-use/canadian-drugs-substances-strategy/funding/substance-use-addictions-program/active-projects.html" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:underline">Health Canada SUAP Active Projects</a></p>
-          </div>
-          <div className="mt-6">
-            <p className="text-gray-800 leading-relaxed">As of today (<strong>{todayFormatted}</strong>) Phase #2 <em>"Leading the Way: PWLLE at the Forefront of Drug-Checking Initiatives"</em>, funded via Health Canada's Substance Use and Addictions Program (<a href="https://www.canada.ca/en/health-canada/services/substance-use/canadian-drugs-substances-strategy/funding/substance-use-addictions-program.html" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:text-purple-900 underline">SUAP</a>), has successfully allocated <strong>24 total spectrometers</strong> across Canada.</p>
-            <p className="text-gray-800 leading-relaxed mt-4">Looking ahead, the project aims to deploy 4 more spectrometers: 2 in Fiscal Year 3 (April 1st 2026 to March 31st 2027) and 2 in Fiscal Year 4 (April 1st 2027 to March 31st 2028), bringing the total network capacity upon project completion, to <strong>28 spectrometers</strong>.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-            <div className="bg-white p-4 rounded-xl border border-purple-200">
-              <div className="font-bold text-purple-900 mb-2">Principal Investigator (PI):</div>
-              <div className="text-gray-800 font-medium">Professor Francois Lagugne-Labarthet</div>
-              <div className="text-gray-600">Faculty of Science, Western University · London, ON</div>
-              <div className="flex items-center gap-2 mt-2 text-purple-700"><Phone size={14} /><span>519-661-2111 x81006</span></div>
-              <div className="flex items-center gap-2 text-purple-700"><Mail size={14} /><a href="mailto:flagugne@uwo.ca" className="hover:underline">flagugne@uwo.ca</a></div>
+      </header>
+      <main id="main">
+        <ProjectCountdown />
+        <div className="px-6 pt-6">
+          <section aria-labelledby="overview-h" className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-2xl shadow-lg border-2 border-purple-200">
+            <h2 id="overview-h" className="text-3xl font-bold text-purple-900 mb-4">Overview</h2>
+            <p className="text-gray-800 leading-relaxed">As of <strong>{todayFormatted}</strong>: {stats.signedPartners} partner organizations under signed agreements in {stats.provinces.length} provinces; {stats.deployedDevices} spectrometers deployed at {stats.activeSites - 1} partner sites plus Western's laboratory; {stats.plannedSites} further installs scheduled for December 2026 and {stats.onboarding} organization onboarding. Point-of-care scans: {METRICS.totals.pocAllTime.toLocaleString()} since Nov 2022, {METRICS.totals.pocFiscalYearToDate.toLocaleString()} in {METRICS.fiscalYearNow}.</p>
+            <DataStamp metrics={METRICS} partners={partnersMeta} className="mt-3" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+              <div className="bg-white p-4 rounded-xl border border-purple-200">
+                <div className="font-bold text-purple-900 mb-2">Principal Investigator (PI):</div>
+                <div className="text-gray-800 font-medium">Professor Francois Lagugne-Labarthet</div>
+                <div className="text-gray-600">Faculty of Science, Western University · London, ON</div>
+                <div className="flex items-center gap-2 mt-2 text-purple-700"><Phone size={14} aria-hidden="true" /><span>519-661-2111 x81006</span></div>
+                <div className="flex items-center gap-2 text-purple-700"><Mail size={14} aria-hidden="true" /><a href="mailto:flagugne@uwo.ca" className="hover:underline">flagugne@uwo.ca</a></div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-purple-200">
+                <div className="font-bold text-purple-900 mb-2">Project Manager:</div>
+                <div className="text-gray-800 font-medium">Cameron Brown</div>
+                <div className="text-gray-600">Faculty of Science, Western University · London, ON</div>
+                <div className="flex items-center gap-2 mt-2 text-purple-700"><Phone size={14} aria-hidden="true" /><span>226-238-9970</span></div>
+                <div className="flex items-center gap-2 text-purple-700"><Mail size={14} aria-hidden="true" /><a href="mailto:cbrown58@uwo.ca" className="hover:underline">cbrown58@uwo.ca</a></div>
+              </div>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-purple-200">
-              <div className="font-bold text-purple-900 mb-2">Project Manager:</div>
-              <div className="text-gray-800 font-medium">Cameron Brown</div>
-              <div className="text-gray-600">Faculty of Science, Western University · London, ON</div>
-              <div className="flex items-center gap-2 mt-2 text-purple-700"><Phone size={14} /><span>226-238-9970</span></div>
-              <div className="flex items-center gap-2 text-purple-700"><Mail size={14} /><a href="mailto:cbrown58@uwo.ca" className="hover:underline">cbrown58@uwo.ca</a></div>
-            </div>
+          </section>
+        </div>
+        <div className="h-24 bg-purple-800 mt-6"></div>
+        <div className="text-center py-6 bg-white"><h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-purple-900 tracking-tight">Research Personnel Dashboard</h2></div>
+        <div className="px-6 pb-4">
+          <div className="bg-gradient-to-br from-purple-100 to-white p-6 rounded-2xl shadow-lg border-2 border-purple-200">
+            <p className="text-gray-800 leading-relaxed">Internal view for the Western research team: partner data, exemption tracking, utilization, training status and project documentation. Not for distribution outside the team.</p>
+            <TableOfContents sections={RESEARCH_TOC} />
           </div>
         </div>
-      </div>
-      <div className="h-24 bg-purple-800 mt-6"></div>
-      <div className="text-center py-6 bg-white"><h2 className="text-5xl md:text-6xl font-black text-purple-900 tracking-tight">Research Personnel Dashboard</h2></div>
-      <div className="px-6 pb-4">
-        <div className="bg-gradient-to-br from-purple-100 to-white p-6 rounded-2xl shadow-lg border-2 border-purple-200">
-          <p className="text-gray-800 leading-relaxed">Welcome to the Research Personnel Dashboard — an internal platform designed specifically for the University research team. This dashboard provides comprehensive access to all partner data, exemption tracking, training status, and project documentation.</p>
-          <TableOfContents />
+        <div className="p-6 space-y-6">
+          <PerformanceReport />
+          <ExemptionTracker />
+          <SiteNotes />
+          <NewsFeed expandedDefault />
+          <NetworkSummary expandedDefault />
+          <MapSection expandedDefault showMetrics />
+          <ContactsSection expandedDefault showMetrics title="Complete Partner Data" />
+          <PwlleTrainingSessions expandedDefault />
+          <TrainingTracker />
+          <ProjectTimeline />
+          <ProjectPublications />
+          <PresentationCard />
+          <PdfCard id="scatr-research" title="Scatr Technical Research Strategy" url="https://partners.uwo-drugchecking.ca/Scatr-Technical-Research-Strategy.pdf" summary="Scatr Inc.'s technical research strategy for the Series One platform." />
+          <DocumentsSection expandedDefault />
+          <RelatedLinks />
+          <footer className="pt-4 border-t border-purple-100"><DataStamp metrics={METRICS} partners={partnersMeta} /></footer>
         </div>
-      </div>
-      <div className="p-6 space-y-6">
-        <div id="performance" className="scroll-mt-4"><PerformanceReport /></div>
-        <div id="timeline" className="scroll-mt-4"><ProjectTimeline /></div>
-        <div id="news" className="scroll-mt-4"><NewsUpdatesFeed /></div>
-        <div id="metrics" className="scroll-mt-4"><SummaryMetrics partnersData={partnersData} stats={stats} sitesByProvince={sitesByProvince} /></div>
-        <div id="publications" className="scroll-mt-4"><ProjectPublications /></div>
-        <div id="presentation" className="scroll-mt-4"><PowerPointViewer /></div>
-        <div id="scatr-research" className="scroll-mt-4"><ScatrResearchPDFViewer /></div>
-        <div id="documents" className="scroll-mt-4"><ResearchDocuments /></div>
-        <div id="exemptions" className="scroll-mt-4"><ExemptionTracker /></div>
-        <div id="site-notes" className="scroll-mt-4"><SiteNotes /></div>
-        <div id="map" className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden scroll-mt-4">
-          <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4"><h2 className="flex items-center gap-2 font-bold text-2xl"><MapPin size={28} />Interactive Map View of Project Partner Sites</h2></div>
-          <div className="p-6 bg-gradient-to-br from-white to-purple-50"><MapView /></div>
-        </div>
-        <div id="table" className="bg-white rounded-2xl shadow-2xl border-4 border-purple-100 overflow-hidden scroll-mt-4">
-          <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-6 py-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 font-bold text-2xl"><List size={28} />Complete Partner Data</h2>
-            <button onClick={() => printContactList(partnersData)} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors text-sm font-medium" title="Print Contact List"><Printer size={18} />Print List / Save as PDF</button>
-          </div>
-          <div className="p-6 bg-gradient-to-br from-white to-purple-50"><TableView /></div>
-        </div>
-        <div id="pwlle-sessions" className="scroll-mt-4"><PWLLETrainingSessionsTracker /></div>
-        <div id="links" className="scroll-mt-4"><RelatedLinks /></div>
-      </div>
+      </main>
     </div>
   );
 };
 
-export default ProjectPartnerDashboard;
+const App = () => (
+  <AccessGate>
+    <ResearchDashboard />
+  </AccessGate>
+);
+
+export default App;

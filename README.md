@@ -1,16 +1,17 @@
-# React + Vite
+# Research Personnel Dashboard — research.uwo-drugchecking.ca
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Internal dashboard for the Western research team (partner data, exemption tracker, utilization, site notes). React + Vite + Tailwind, deployed to GitHub Pages. The whole site sits behind a password (`VITE_RESEARCH_PASSWORD`, set at build time; no fallback in the source, so an empty value locks the site).
 
-Currently, two official plugins are available:
+## Where the content lives
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+`src/shared/` and `src/data/*.json` are copied from the partner dashboard repo (the source of truth) with `bash _scripts/sync_shared.sh` run from `Partner-Dashboard-PARTNERS`. Do not edit the copies here except:
 
-## React Compiler
+- `src/data/site_notes.json` — research-only notes and action items (owner, due date, priority), fed from the weekly agenda.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+`exemptions.json` (one row per decision letter in `HealthCan-UWO/Legal & Regulatory`) drives the Exemption 56 tracker; `metrics.json` drives the performance report and the per-site utilization table (regenerate with `scatr_full_pull/make_dashboard_metrics.py` after a full pull).
 
-## Expanding the ESLint configuration
+## Building and deploying
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Local: `npm ci`, then `npm run dev` or `npm run build` with `.env.local` (see `.env.example`). Deploy: pushing to `main` runs `.github/workflows/deploy.yml`, which builds with the `VITE_RESEARCH_PASSWORD` repository secret and publishes `dist/` to `gh-pages` (custom domain via `public/CNAME`). Until that secret exists the workflow validates the data files and skips the build and publish, so the live site is never replaced by a locked build. `npm run deploy` from a local build remains a fallback and is how the site was published on 14 Oct 2026.
+
+The password gate is a deterrent for a shared internal link, not per-user authentication; the password is embedded in the built bundle. Rotate it by changing the secret and redeploying.
