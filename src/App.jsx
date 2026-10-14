@@ -336,7 +336,7 @@ const TrainingTracker = () => {
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${ok ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`} aria-hidden="true">{ok ? <Check size={18} /> : <Clock size={18} />}</div>
                 <div className="min-w-0">
                   <div className={`font-medium text-sm truncate ${ok ? 'text-green-900' : 'text-gray-700'}`}>{p.nameOrganization}</div>
-                  <div className="text-xs text-gray-500">{ok ? `${e.unique} unique PWLLE · last session ${fmtDate(e.lastDate)}` : e ? `${e.sessions} session(s), certification pending` : 'No session yet'}</div>
+                  <div className="text-xs text-gray-500">{ok ? (e.unique > 0 ? `${e.unique} unique PWLLE · last session ${fmtDate(e.lastDate)}` : `certification session ${fmtDate(e.lastDate)} · attendance to enter`) : e ? `${e.sessions} session(s), certification pending` : 'No session yet'}</div>
                 </div>
               </li>
             );
