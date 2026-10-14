@@ -3,7 +3,7 @@ import { Users, Clock, ExternalLink, Presentation, Maximize2, Minimize2, Check, 
 import L from 'leaflet';
 
 import { SectionCard, SkipLink, DataStamp, StatusBadge, SparkBars, fmtDate, fmtMonth } from './shared/ui.jsx';
-import { ALL_PARTNERS, LISTED_PARTNERS, METRICS, EXEMPTIONS, partnersMeta, networkStats, trainingSummary, exemptionSummary, daysUntil, metricsFor, hasMobile, hasFixed, PWLLE_TRAINING_SESSIONS } from './shared/data.js';
+import { ALL_PARTNERS, LISTED_PARTNERS, METRICS, EXEMPTIONS, partnersMeta, networkStats, trainingSummary, exemptionSummary, daysUntil, metricsFor, hasMobile, hasFixed, PWLLE_TRAINING_SESSIONS, trainingMeta } from './shared/data.js';
 import { NewsFeed, DocumentsSection, RelatedLinks, NetworkSummary, PwlleTrainingSessions, MapSection, ContactsSection } from './shared/sections.jsx';
 import { PdfCard, ProjectPublications, BackToTop, AnnouncementBanner, TableOfContents, ProjectCountdown, ProjectTimeline } from './shared/common.jsx';
 import siteNotesJson from './data/site_notes.json';
@@ -267,7 +267,7 @@ const PerformanceReport = () => {
             <li>Mass spectrometry at Western paused since Jul 2026; no laboratory confirmations since then (Drug Analysis Service limit 20 samples per month).</li>
             <li>{ex.expiringSoon.length} active exemption{ex.expiringSoon.length === 1 ? '' : 's'} expire within 90 days ({ex.expiringSoon.map((e) => e.site).filter((v, i, a) => a.indexOf(v) === i).join(', ') || 'none'}); {ex.expired.length} expired with renewals submitted.</li>
             <li>Sites with a device but no scans in the last 12 months: {METRICS.sites.filter((s) => s.known && s.pocLast12Months === 0 && ALL_PARTNERS.some((p) => p.username === s.username && p.status === 'active')).map((s) => s.site).join(', ') || 'none'}.</li>
-            <li>Training sessions held after 10 Apr 2026 other than AIDS New Brunswick (31 Jul) are not yet recorded in the tracker.</li>
+            {(trainingMeta.reviewNotes || []).map((n) => <li key={n}>{n}.</li>)}
           </ul>
         </div>
         <DataStamp metrics={METRICS} partners={partnersMeta} />
