@@ -211,7 +211,7 @@ const PerformanceReport = () => {
   const fyOrder = ['FY2024-25', 'FY2025-26', 'FY2026-27', 'FY2027-28'];
   const sessionsByFy = (fy) => PWLLE_TRAINING_SESSIONS.filter((s) => s.status === 'Complete' && s.scheduledDate && fyOf(s.scheduledDate) === fy);
   const kpis = [
-    { label: 'Point-of-care scans, all time', value: t.pocAllTime.toLocaleString(), icon: <Activity size={20} className="text-purple-600" aria-hidden="true" />, desc: `Since Nov 2022 · ${t.pocPhase2SinceJun27_2024.toLocaleString()} in Phase 2 (from 27 Jun 2024)` },
+    { label: 'Point-of-care scans at partner sites, all time', value: t.pocAllTime.toLocaleString(), icon: <Activity size={20} className="text-purple-600" aria-hidden="true" />, desc: `Since Mar 2023 · ${t.pocPhase2SinceJun27_2024.toLocaleString()} in Phase 2 (from 27 Jun 2024) · ${(t.labScansAllTime || 0).toLocaleString()} laboratory scans at Western not included` },
     { label: `Scans this fiscal year (${fyNow})`, value: t.pocFiscalYearToDate.toLocaleString(), icon: <BarChart3 size={20} className="text-indigo-600" aria-hidden="true" />, desc: `${t.pocLast12Months.toLocaleString()} in the last 12 months · ${t.sitesWithPocLast12Months} sites scanning` },
     { label: 'Partner organizations (signed)', value: stats.signedPartners, icon: <Building2 size={20} className="text-green-600" aria-hidden="true" />, desc: `${stats.activeSites - 1} operating · ${stats.plannedSites} installing Dec 2026 · ${stats.onboarding} onboarding` },
     { label: 'Spectrometers', value: `${stats.deployedDevices} / ${stats.allocatedDevices}`, icon: <Zap size={20} className="text-blue-600" aria-hidden="true" />, desc: `deployed / allocated · plan ${stats.plannedDevicesTotal} by Mar 2028` },
@@ -405,8 +405,8 @@ const ResearchDashboard = () => {
                 {[
                   [stats.signedPartners, 'Partner organizations'],
                   [stats.deployedDevices, 'Spectrometers deployed'],
-                  [METRICS.totals.pocFiscalYearToDate.toLocaleString(), `Scans ${METRICS.fiscalYearNow}`],
-                  [METRICS.totals.pocAllTime.toLocaleString(), 'Scans all time'],
+                  [METRICS.totals.pocFiscalYearToDate.toLocaleString(), `Point-of-care scans ${METRICS.fiscalYearNow}`],
+                  [METRICS.totals.pocAllTime.toLocaleString(), 'Point-of-care scans all time'],
                 ].map(([v, l]) => (
                   <div key={l} className="bg-purple-50 border border-purple-200 rounded-xl px-3 py-2"><dt className="text-xs text-purple-700 font-semibold uppercase tracking-wide">{l}</dt><dd className="text-2xl font-black text-purple-900">{v}</dd></div>
                 ))}
@@ -421,7 +421,7 @@ const ResearchDashboard = () => {
         <div className="px-6 pt-6">
           <section aria-labelledby="overview-h" className="bg-gradient-to-br from-purple-50 to-white p-6 rounded-2xl shadow-lg border-2 border-purple-200">
             <h2 id="overview-h" className="text-3xl font-bold text-purple-900 mb-4">Overview</h2>
-            <p className="text-gray-800 leading-relaxed">As of <strong>{todayFormatted}</strong>: {stats.signedPartners} partner organizations under signed agreements in {stats.provinces.length} provinces; {stats.deployedDevices} spectrometers deployed at {stats.activeSites - 1} partner sites plus Western's laboratory; {stats.plannedSites} further installs scheduled for December 2026 and {stats.onboarding} organization onboarding. Point-of-care scans: {METRICS.totals.pocAllTime.toLocaleString()} since Nov 2022, {METRICS.totals.pocFiscalYearToDate.toLocaleString()} in {METRICS.fiscalYearNow}.</p>
+            <p className="text-gray-800 leading-relaxed">As of <strong>{todayFormatted}</strong>: {stats.signedPartners} partner organizations under signed agreements in {stats.provinces.length} provinces; {stats.deployedDevices} spectrometers deployed at {stats.activeSites - 1} partner sites plus Western's laboratory; {stats.plannedSites} further installs scheduled for December 2026 and {stats.onboarding} organization onboarding. Point-of-care scans at partner sites: {METRICS.totals.pocAllTime.toLocaleString()} since Mar 2023, {METRICS.totals.pocFiscalYearToDate.toLocaleString()} in {METRICS.fiscalYearNow} (definitions in the Network Summary).</p>
             <DataStamp metrics={METRICS} partners={partnersMeta} className="mt-3" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div className="bg-white p-4 rounded-xl border border-purple-200">
